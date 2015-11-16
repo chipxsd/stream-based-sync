@@ -52,8 +52,8 @@
 * How to keep the events published by clients in the correct order?
 
 ### 5.1 Synchronized Sequential Writes
-* Locking the stream (e.g. table or row in database) drops the response time
-  drastically in noisy streams.
+* Locking the stream (e.g. table or row in database) increases the response
+  time drastically in noisy streams.
 
 ### 5.2 Don't Even Think About Timestamps!
 * Relying on timestamps to keep the order of events requires an
