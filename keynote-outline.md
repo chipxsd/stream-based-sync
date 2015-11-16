@@ -69,13 +69,13 @@
 
 
 ## 6. Advantages
-* Fast because of the low bandwidth and CPU usage cost when getting data
+* Fast because of the low bandwidth and CPU usage cost when getting the data
   (deltas) delivered in real-time.
 * Easy to implement load balancing and replication on server.
 
 
 ## 7. Shortcomings
-* To get to a fully reconciled state from a cold-state can take a lot of
+* To get to a fully reconciled model from a cold-state can take a lot of
   resources (time, bandwidth and CPU).
 * Very difficult to implement partial sync process (since you don't have a
   complete view of the stream at the beginning of the sync process).
