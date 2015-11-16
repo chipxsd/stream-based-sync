@@ -7,14 +7,12 @@
 
 ## 2 Data Synchronization
 * What is data synchronization? (having the same state on all clients/nodes)
-* Types of data synchronizations (file, document, data model, database)
-* Ways to synchronize (static/absolute: copy, diff; dynamic/relative: deltas)
-
-### 2.1 Application Use cases
-* Messaging, photo sharing, file sharing, multiplayer game synchronization,
+* Use cases: messaging, photo sharing, file sharing, multiplayer game synchronization,
   application data synchronization across devices.
+* Types of data synchronizations (file, document, data model, database)
+* Ways to synchronize (static/absolute: copy, diff; dynamic/relative: deltas;)
 
-### 2.2 What Are Deltas?
+### 2.1 What Are Deltas?
 * Short pieces of information describing model mutations.
 * How to deal with deltas? How to store it and transfer over network?
 
