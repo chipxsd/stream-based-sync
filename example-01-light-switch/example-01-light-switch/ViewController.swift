@@ -44,7 +44,7 @@ class ViewController: UIViewController, LightSwitchClientDelegate {
      - Parameter sender: The sender invoking the function.
      */
     @IBAction func onButtonDidTouchUpInside(sender: AnyObject) {
-        self.toggleLightSwitch()
+        self.toggleAndSendLightSwitchState()
     }
 
     /**
@@ -66,15 +66,6 @@ class ViewController: UIViewController, LightSwitchClientDelegate {
     }
 
     /**
-     Toggles the private ivar `_lightSwitchState` boolean, updates the
-     backgrund image, plays a sound and transmits the change over network.
-     */
-    func toggleLightSwitch() {
-        self.lightSwitchState = !self.lightSwitchState
-        self.lightSwitchClient?.sendLightSwitchState(self.lightSwitchState)
-    }
-
-    /**
      Plays a sound from the resources bundle with a given file name.
      
      - Parameter soundName: The filename of the sound.
@@ -88,6 +79,15 @@ class ViewController: UIViewController, LightSwitchClientDelegate {
         } catch let error {
             print("Failed to play sound named '\(soundName)' with \(error)")
         }
+    }
+    
+    /**
+     Toggles the private ivar `_lightSwitchState` boolean, updates the
+     backgrund image, plays a sound and transmits the change over network.
+     */
+    func toggleAndSendLightSwitchState() {
+        self.lightSwitchState = !self.lightSwitchState
+        self.lightSwitchClient?.sendLightSwitchState(self.lightSwitchState)
     }
     
     /**
