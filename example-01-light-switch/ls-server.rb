@@ -14,8 +14,8 @@ EM.run {
 
       # Sending the last known lightSwitchState to the newly connected client.
       # JSON Structure example: { lightsOn: true }
-      lightsOn = { :lightsOn => @lightSwitchState }.to_json
-      ws.send lightsOn
+      lightsOnString = { :lightsOn => @lightSwitchState }.to_json
+      ws.send lightsOnString
 
       # Registering the newly connected client to the global channel, and
       # implementing a method that gets called when a participant
@@ -29,11 +29,11 @@ EM.run {
       ws.onmessage { |msg|
         lightsOn = JSON.parse(msg)
         @lightSwitchState = lightsOn["lightsOn"]
-        lightsOn = { :lightsOn => @lightSwitchState }.to_json
+        lightsOnString = { :lightsOn => @lightSwitchState }.to_json
         puts "LightSwitchServer: client #{sid} sent light switch state change: #{lightsOn}"
 
         # Pushing the new reconstructed JSON structure.
-        @channel.push lightsOn
+        @channel.push lightsOnString
       }
 
       # Method called in case the websocket server received an error.
