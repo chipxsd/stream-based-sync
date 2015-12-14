@@ -1,0 +1,74 @@
+//
+//  LightSwitchClient.swift
+//  example-01-light-switch
+//
+//  Created by Klemen Verdnik on 12/11/15.
+//  Copyright © 2015 Klemen Verdnik. All rights reserved.
+//
+
+import UIKit
+import Starscream
+
+public protocol LightSwitchClientDelegate: class {
+    func lightSwitchClientDidReceiveChange(client: LightSwitchClient, lightsOn: Bool)
+}
+
+public class LightSwitchClient: NSObject, WebSocketDelegate {
+
+    var webSocketClient: WebSocket;
+    public weak var delegate: LightSwitchClientDelegate?
+
+    init(hostURL: NSURL) {
+        self.webSocketClient = WebSocket(url: hostURL)
+        super.init()
+        self.webSocketClient.connect();
+        self.webSocketClient.delegate = self
+    }
+
+    /**
+     Transmits the light switch state to the server
+    
+     - Parameter lightsOn: A boolean value representing the light swithc state.
+     */
+    public func sendLightSwitchState(lightsOn: Bool) {
+        let lightSwitchStateDict = ["lightsOn" : lightsOn]
+        var JSONString: String?
+        do {
+            let JSONData = try NSJSONSerialization.dataWithJSONObject(lightSwitchStateDict, options: NSJSONWritingOptions.PrettyPrinted)
+            JSONString = String(data: JSONData, encoding: NSUTF8StringEncoding)!
+        } catch let error {
+            print("Failed serializing dictionary to a JSON object with \(error)");
+        }
+        if JSONString != nil {
+            self.webSocketClient.writeString(JSONString!)
+        }
+    }
+    
+    /*
+     * WebSocketDelegate functions implementation below:
+     */
+    public func websocketDidReceiveMessage(socket: WebSocket, text: String) {
+        let JSONData = text.dataUsingEncoding(NSUTF8StringEncoding)
+        var lightSwitchStateDict: Dictionary<String, AnyObject>?
+        do {
+            lightSwitchStateDict = try NSJSONSerialization.JSONObjectWithData(JSONData!, options: NSJSONReadingOptions.AllowFragments) as? Dictionary<String, AnyObject>;
+        } catch let error {
+            print("Failed deserializing SON object with \(error)");
+        }
+        if lightSwitchStateDict != nil {
+            self.delegate?.lightSwitchClientDidReceiveChange(self, lightsOn: lightSwitchStateDict?["lightsOn"] as! Bool);
+        }
+    }
+    
+    public func websocketDidConnect(socket: WebSocket) {
+        
+    }
+    
+    public func websocketDidDisconnect(socket: WebSocket, error: NSError?) {
+        
+    }
+    
+    public func websocketDidReceiveData(socket: WebSocket, data: NSData) {
+        
+    }
+}
