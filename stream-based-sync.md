@@ -34,7 +34,7 @@ Solutions for this problem come pretty natural for experienced engineers, but
 for some it may not be as trivial. So let's play with the _Light Switch_
 sample app idea for a little. To narrow down the requirements for this app,
 let's say that the light switch state has to be shared across devices
-via Internet -- since by having these devices in close proximity,
+via network -- since by having these devices in close proximity,
 we could use various technologies and protocols to achieve this (such as
 Bluetooth, AdHoc WiFi, Multi-peer Connectivity on Apple devices, etc.).
 
@@ -45,16 +45,48 @@ Let's make a list of components we need to have to achieve this:
 - **a simple server** -- which can be a lightweight service (process)
   written in C using standard library, or something bigger written using
   a framework (in Scala, Ruby, Python, Java, etc.). For the sake of
-  simplicity, in this example we'll have our server listen to and
-  accept plain TCP connections, we won't need persistence or database
-  of any kind.
+  simplicity, we'll use a simple web socket server in Ruby that accepts
+  JSON structure with _Light Switch_ state information, and fans out the new
+  state to other clients. No persistence of the _Light Swtich_ state.
 
 - **mobile clients** -- an app that connects to our lightweight server
-  capable of receiving and sending _Light Switch_ state changes.
+  capable of receiving and sending _Light Switch_ state changes through
+  the web socket. For visualization of these state changes we'll switch
+  between two different background images (one indicating lights are on,
+  and the other one for when the switch is off).
 
-![fig.2 - Example Architecture](./figure_02.png "fig. 2 - Example Architecture")
+![fig.2 - Example App Architecture](./figure_02.png "fig. 2 - Example App Architecture")
 
+Both client side and server side code should be very simple. Let's check
+the client side code first. On the UI controller side, we need a
+delegate method where we get our _Light Switch_ updates from the
+web socket client and a method for sending out the updates to the server:
 
+```swift
+/// The local Light Switch state.
+private var lightSwitchState:Boolean;
+
+/**
+ LightSwitchClientDelegate function implementation, which gets executed
+ whenever a new light switch state comes in from the network. The new state
+ gets stored in a local variable `self.lightSwitchState`.
+
+ - Parameter client: The `LightSwitchClient` executing the function.
+ - Parameter lightsOn: The new Light Switch state coming from network.
+ */
+func lightSwitchClientDidReceiveChange(client: LightSwitchClient, lightsOn: Bool) {
+    self.lightSwitchState = lightsOn
+}
+
+/**
+ Toggles the private ivar `_lightSwitchState` boolean, updates the
+ background image, plays a sound and transmits the change over network.
+ */
+func toggleAndSendLightSwitchState() {
+    self.lightSwitchState = !self.lightSwitchState
+    self.lightSwitchClient?.sendLightSwitchState(self.lightSwitchState)
+}
+```
 
 -------------------------------------------------------------------------------
 this is still chapter 2.1
