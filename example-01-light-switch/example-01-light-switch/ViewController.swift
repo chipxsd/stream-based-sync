@@ -11,13 +11,21 @@ import AVFoundation
 
 class ViewController: UIViewController, LightSwitchClientDelegate {
     
+    /// Reference to the `backgroundImage` instantiated in the storyboard.
     @IBOutlet weak var backgroundImage: UIImageView!
-    private var _lightSwitchState = false;
+
+    /// The local Light Switch state.
+    private var _lightSwitchState = false
+    
+    /// Light Switch Client using the web socket.
     private var lightSwitchClient: LightSwitchClient?
+    
+    /// The `AVAudioPlayer` instance that gets instantated in
+    /// `func playSound(...)` we keep as a local instance.
     private var audioPlayer: AVAudioPlayer?
     
     override func viewDidLoad() {
-        self.lightSwitchClient = LightSwitchClient(hostURL: NSURL(string: "ws://192.168.90.102:8080/")!)
+        self.lightSwitchClient = LightSwitchClient(hostURL: NSURL(string: "ws://10.0.17.1:8080/")!)
         self.lightSwitchClient?.delegate = self
         super.viewDidLoad()
     }
@@ -49,10 +57,10 @@ class ViewController: UIViewController, LightSwitchClientDelegate {
         }
         set {
             if newValue == self._lightSwitchState {
-                return;
+                return
             }
             self._lightSwitchState = newValue
-            backgroundImage.highlighted = newValue;
+            backgroundImage.highlighted = newValue
             self.playSound(newValue == true ? "lightsOn" : "lightsOff")
         }
     }
@@ -62,7 +70,7 @@ class ViewController: UIViewController, LightSwitchClientDelegate {
      backgrund image, plays a sound and transmits the change over network.
      */
     func toggleLightSwitch() {
-        self.lightSwitchState = !self.lightSwitchState;
+        self.lightSwitchState = !self.lightSwitchState
         self.lightSwitchClient?.sendLightSwitchState(self.lightSwitchState)
     }
 
@@ -83,10 +91,15 @@ class ViewController: UIViewController, LightSwitchClientDelegate {
     }
     
     /**
-     LightSwitchClientDelegate function implementation
+     LightSwitchClientDelegate function implementation, which gets executed
+     whenever a new light switch state comes in from the network. The new state
+     gets stored in a local variable `self.lightSwitchState`.
+     
+     - Parameter client: The `LightSwitchClient` executing the function.
+     - Parameter lightsOn: The new Light Switch state coming from network.
      */
     func lightSwitchClientDidReceiveChange(client: LightSwitchClient, lightsOn: Bool) {
-        self.lightSwitchState = lightsOn;
+        self.lightSwitchState = lightsOn
     }
 }
 

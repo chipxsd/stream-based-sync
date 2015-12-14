@@ -15,7 +15,10 @@ public protocol LightSwitchClientDelegate: class {
 
 public class LightSwitchClient: NSObject, WebSocketDelegate {
 
-    var webSocketClient: WebSocket;
+    /// The Starscream `WebSocket` client.
+    var webSocketClient: WebSocket
+    
+    /// Delegate in charge of receiving Light Switch updates.
     public weak var delegate: LightSwitchClientDelegate?
 
     /**
@@ -26,7 +29,7 @@ public class LightSwitchClient: NSObject, WebSocketDelegate {
     init(hostURL: NSURL) {
         self.webSocketClient = WebSocket(url: hostURL)
         super.init()
-        self.webSocketClient.connect();
+        self.webSocketClient.connect()
         self.webSocketClient.delegate = self
     }
 
@@ -42,7 +45,7 @@ public class LightSwitchClient: NSObject, WebSocketDelegate {
             let JSONData = try NSJSONSerialization.dataWithJSONObject(lightSwitchStateDict, options: NSJSONWritingOptions.PrettyPrinted)
             JSONString = String(data: JSONData, encoding: NSUTF8StringEncoding)!
         } catch let error {
-            print("Failed serializing dictionary to a JSON object with \(error)");
+            print("Failed serializing dictionary to a JSON object with \(error)")
         }
         if JSONString != nil {
             self.webSocketClient.writeString(JSONString!)
@@ -56,12 +59,12 @@ public class LightSwitchClient: NSObject, WebSocketDelegate {
         let JSONData = text.dataUsingEncoding(NSUTF8StringEncoding)
         var lightSwitchStateDict: Dictionary<String, AnyObject>?
         do {
-            lightSwitchStateDict = try NSJSONSerialization.JSONObjectWithData(JSONData!, options: NSJSONReadingOptions.AllowFragments) as? Dictionary<String, AnyObject>;
+            lightSwitchStateDict = try NSJSONSerialization.JSONObjectWithData(JSONData!, options: NSJSONReadingOptions.AllowFragments) as? Dictionary<String, AnyObject>
         } catch let error {
-            print("Failed deserializing SON object with \(error)");
+            print("Failed deserializing SON object with \(error)")
         }
         if lightSwitchStateDict != nil {
-            self.delegate?.lightSwitchClientDidReceiveChange(self, lightsOn: lightSwitchStateDict?["lightsOn"] as! Bool);
+            self.delegate?.lightSwitchClientDidReceiveChange(self, lightsOn: lightSwitchStateDict?["lightsOn"] as! Bool)
         }
     }
     
