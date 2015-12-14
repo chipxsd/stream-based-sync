@@ -18,6 +18,11 @@ public class LightSwitchClient: NSObject, WebSocketDelegate {
     var webSocketClient: WebSocket;
     public weak var delegate: LightSwitchClientDelegate?
 
+    /**
+     Initializes a web socket client and connects to the given URL host address.
+     
+     - Parameter hostURL: The URL address the web socket will connect to.
+     */
     init(hostURL: NSURL) {
         self.webSocketClient = WebSocket(url: hostURL)
         super.init()
