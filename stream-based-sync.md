@@ -193,9 +193,9 @@ end
 ```
 
 There's two main parts to the code above. We used channels to construct
-a notion of followers (or listeners, if you will). First, when a client
+a notion of followers (or listeners, if you will), and when a client
 connects to the server it gets added to the channel (`@channel.subscribe`).
-Second, as soon as the server receives a light switch change (`ws.onmessage`)
+Then, as soon as the server receives a light switch change (`ws.onmessage`)
 from a client, it unwraps the JSON structure, takes out the Light Switch state
 (`:lightsOn`), stores it into the globally variable (`@lightSwithcState`) and
 then pushes a newly constructed JSON object to the channel, which then
