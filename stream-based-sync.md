@@ -15,39 +15,41 @@ Android and iOS.
 ### 2.1 What is Data Synchronization?
 
 Term _synchronization_ in computer science is a bit ambiguous, it can for
-example mean having a piece of code running in serial (synchronous)
-or in parallel (asynhcronous). But in our case, we'll be mostly
-talking about data synchronization over network, as in having the
+example mean coordination of simultaneous processes to complete a task in
+the correct order (to avoid any potential race conditions). But in this topic
+we'll be mainly talking about data synchronization, as in having the
 same state across multiple clients.
 
 #### 2.1.1 Example
 
-An example would be a mobile app with a toggle switch, say a **light switch**,
+An example would be a mobile app with a toggle switch, say a **light switch**.
 Now, if I have 5 devices in front of me, I'd like to have the light switch
-state shared across all those devices. So if I turn the lights on or off
-one device, it should reflect the change on other 4 devices. That's a
-pretty basic example of network data synchronization.
+state shared across all those devices. If I turn the lights on or off
+one device, it should reflect the changes on other 4 devices. That's a
+pretty basic example of data synchronization over network.
 
 ![fig.1 - Example App "Light Switch"](./figure_01.png "fig. 1 - Example App 'Light Switch'")
 
-Solutions for this problem come pretty natural for experienced engineers, but
+Solutions for such problem come pretty natural to experienced engineers, but
 for some it may not be as trivial. So let's play with the _Light Switch_
 sample app idea for a little. To narrow down the requirements for this app,
 let's say that the light switch state has to be shared across devices
-via network -- since by having these devices in close proximity,
-we could use various technologies and protocols to achieve this (such as
-Bluetooth, AdHoc WiFi, Multi-peer Connectivity on Apple devices, etc.).
+via TCP/IP network. I pointed out TCP/IP network because there are also other
+technologies and protocols we could use that provide close proximity
+communication to achieve this (such as Bluetooth, AdHoc WiFi,
+Multi-peer Connectivity on Apple devices, etc.).
 
 #### 2.1.2 How Would We Design Such a System?
 
 Let's make a list of components we need to have to achieve this:
 
 - **a simple server** -- which can be a lightweight service (process)
-  written in C using standard library, or something bigger written using
-  a framework (in Scala, Ruby, Python, Java, etc.). For the sake of
-  simplicity, we'll use a simple web socket server in Ruby that accepts
-  JSON structure with _Light Switch_ state information, and fans out the new
-  state to other clients. No persistence of the _Light Swtich_ state.
+  written in C using standard library, or something written in higher-lever
+  languages (Scala, Ruby, Python, Java, etc.) using off-the-shelf libraries.
+  For the sake of simplicity, we'll use a simple web socket server in
+  Ruby that accepts JSON structure with _Light Switch_ state information,
+  and fans out the new state to other clients. No persistence of the
+  _Light Swtich_ state required.
 
 - **mobile clients** -- an app that connects to our lightweight server
   capable of receiving and sending _Light Switch_ state changes through
@@ -57,10 +59,72 @@ Let's make a list of components we need to have to achieve this:
 
 ![fig.2 - Example App Architecture](./figure_02.png "fig. 2 - Example App Architecture")
 
-Both client side and server side code should be very simple. Let's check
-the client side code first. On the UI controller side, we need a
-delegate method where we get our _Light Switch_ updates from the
-web socket client and a method for sending out the updates to the server:
+Both client side and server side code should be very simple to implement.
+Let's check the client side code first. We mentioned we're going to use
+[WebSockets](https://en.wikipedia.org/wiki/WebSocket) to keep a persistent
+connection between the client and the server. The one that kind of sticks
+out for me is [Starscream](https://github.com/daltoniam/Starscream), it looks
+like a clean, very easy to use WebSocket client written in Swift.
+
+We shouldn't need more than two functions to do the job of sending and
+receiving Light Switch state updates in our transport layer.
+
+```swift
+/**
+ Transmits the light switch state to the server
+
+ - Parameter lightsOn: A boolean value representing the light switch state.
+ */
+public func sendLightSwitchState(lightsOn: Bool) {
+    let lightSwitchStateDict = ["lightsOn" : lightsOn]
+    var JSONString: String?
+    do {
+        let JSONData = try NSJSONSerialization.dataWithJSONObject(lightSwitchStateDict, options: NSJSONWritingOptions.PrettyPrinted)
+        JSONString = String(data: JSONData, encoding: NSUTF8StringEncoding)!
+    } catch let error {
+        print("Failed serializing dictionary to a JSON object with \(error)")
+    }
+    if JSONString != nil {
+        self.webSocketClient.writeString(JSONString!)
+    }
+}
+```
+
+What the function above does is it wraps the `Boolean` value into a dictionary,
+serializes it into a JSON structure (which is a `String`) and then sends
+it over the open Web Socket connection.
+
+Now we need a function to do the similar operation on the inbound side.
+In an event of receiving a JSON structure, it should try deserializing it
+into a dictionary object and call a delegate method to let it know of the new
+Light Switch state.
+
+```swift
+/**
+ WebSocket's delegate method invoked by the `WebSocket` client upon
+ receiving a string body.
+
+ - Parameter socket: A `WebSocket` client performing the call on the method.
+ - Parameter text: The text body received by the `WebSocket` client.
+ */
+public func websocketDidReceiveMessage(socket: WebSocket, text: String) {
+    let JSONData = text.dataUsingEncoding(NSUTF8StringEncoding)
+    var lightSwitchStateDict: Dictionary<String, AnyObject>?
+    do {
+        lightSwitchStateDict = try NSJSONSerialization.JSONObjectWithData(JSONData!, options: NSJSONReadingOptions.AllowFragments) as? Dictionary<String, AnyObject>
+    } catch let error {
+        print("Failed deserializing the JSON object with \(error)")
+    }
+    if lightSwitchStateDict != nil {
+        self.delegate?.lightSwitchClientDidReceiveChange(self, lightsOn: lightSwitchStateDict?["lightsOn"] as! Bool)
+    }
+}
+```
+
+The UI controller implementation should be symmetrical to the transport
+layer implementation. Again, two functions -- one sending the controller's
+Light Switch state to the transport layer, and the other one should be an
+implementation of the delegate callback which the transport layer calls.
 
 ```swift
 /// The local Light Switch state.
