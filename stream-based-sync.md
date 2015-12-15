@@ -60,6 +60,9 @@ Let's make a list of components we need to have to achieve this:
 ![fig.2 - Example App Architecture](./figure_02.png "fig. 2 - Example App Architecture")
 
 Both client side and server side code should be very simple to implement.
+
+#### 2.1.3 Client Side
+
 Let's check the client side code first. We mentioned we're going to use
 [WebSockets](https://en.wikipedia.org/wiki/WebSocket) to keep a persistent
 connection between the client and the server. The one that kind of sticks
@@ -151,6 +154,53 @@ func toggleAndSendLightSwitchState() {
     self.lightSwitchClient?.sendLightSwitchState(self.lightSwitchState)
 }
 ```
+
+This pretty much sums up the client side implementation.
+
+#### 2.1.4 Server Side
+
+Let's take a quick look at how the server-side implementation should look
+like. I chose to write the server side implementation in Ruby
+using a library called [em-websocket](https://github.com/igrigorik/em-websocket).
+
+```ruby
+# A global variable keeping the light switch state.
+@lightSwitchState = false;
+
+# Channel instance available across all web socket connections. We'll use
+# this channel to emit the changes to all open connections.
+@channel = EM::Channel.new
+
+EM::WebSocket.run(:host => "0.0.0.0", :port => 8080) do |ws|
+  ws.onopen { |handshake|
+    # Sending the last known lightSwitchState to the newly connected client.
+    # JSON Structure example: { lightsOn: true }
+    ws.send ({ :lightsOn => @lightSwitchState }.to_json)
+
+    sid = @channel.subscribe { |msg|
+        # Sends a text body over the web socket to the connected client.
+        ws.send msg
+    }
+
+    ws.onmessage { |msg|
+      lightsOn = JSON.parse(msg)
+      @lightSwitchState = lightsOn["lightsOn"]
+      # Pushing the new reconstructed JSON structure.
+      @channel.push { :lightsOn => @lightSwitchState }.to_json
+    }
+ }
+end
+```
+
+There's two main parts to the code above. We used channels to construct
+a notion of followers (or listeners, if you will). First, when a client
+connects to the server it gets added to the channel (`@channel.subscribe`).
+Second, as soon as the server receives a light switch change (`ws.onmessage`)
+from a client, it unwraps the JSON structure, takes out the Light Switch state
+(`:lightsOn`), stores it into the globally variable (`@lightSwithcState`) and
+then pushes a newly constructed JSON object to the channel, which then
+gets emitted to all of the channel participants. This is how we
+achieve the fan-out.
 
 -------------------------------------------------------------------------------
 this is still chapter 2.1
