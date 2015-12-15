@@ -36,7 +36,7 @@ public class LightSwitchClient: NSObject, WebSocketDelegate {
     /**
      Transmits the light switch state to the server
     
-     - Parameter lightsOn: A boolean value representing the light swithc state.
+     - Parameter lightsOn: A boolean value representing the light switch state.
      */
     public func sendLightSwitchState(lightsOn: Bool) {
         let lightSwitchStateDict = ["lightsOn" : lightsOn]
@@ -52,8 +52,12 @@ public class LightSwitchClient: NSObject, WebSocketDelegate {
         }
     }
     
-    /*
-     * WebSocketDelegate functions implementation below:
+    /**
+     WebSocket's delegate method invoked by the `WebSocket` client upon
+     receiving a string body.
+     
+     - Parameter socket: A `WebSocket` client performing the call on the method.
+     - Parameter text: The text body received by the `WebSocket` client.
      */
     public func websocketDidReceiveMessage(socket: WebSocket, text: String) {
         let JSONData = text.dataUsingEncoding(NSUTF8StringEncoding)
@@ -61,7 +65,7 @@ public class LightSwitchClient: NSObject, WebSocketDelegate {
         do {
             lightSwitchStateDict = try NSJSONSerialization.JSONObjectWithData(JSONData!, options: NSJSONReadingOptions.AllowFragments) as? Dictionary<String, AnyObject>
         } catch let error {
-            print("Failed deserializing SON object with \(error)")
+            print("Failed deserializing the JSON object with \(error)")
         }
         if lightSwitchStateDict != nil {
             self.delegate?.lightSwitchClientDidReceiveChange(self, lightsOn: lightSwitchStateDict?["lightsOn"] as! Bool)
