@@ -44,7 +44,7 @@ public class LightSwitchClient: NSObject, WebSocketDelegate {
         do {
             let JSONData = try NSJSONSerialization.dataWithJSONObject(lightSwitchStateDict, options: NSJSONWritingOptions.PrettyPrinted)
             JSONString = String(data: JSONData, encoding: NSUTF8StringEncoding)!
-        } catch let error {
+        } catch {
             print("Failed serializing dictionary to a JSON object with \(error)")
         }
         if JSONString != nil {
@@ -64,7 +64,7 @@ public class LightSwitchClient: NSObject, WebSocketDelegate {
         var lightSwitchStateDict: Dictionary<String, AnyObject>?
         do {
             lightSwitchStateDict = try NSJSONSerialization.JSONObjectWithData(JSONData!, options: NSJSONReadingOptions.AllowFragments) as? Dictionary<String, AnyObject>
-        } catch let error {
+        } catch {
             print("Failed deserializing the JSON object with \(error)")
         }
         if lightSwitchStateDict != nil {
