@@ -28,7 +28,7 @@ state shared across all those devices. If I turn the lights on or off
 one device, it should reflect the changes on other 4 devices. That's a
 pretty basic example of data synchronization over network.
 
-![fig.1 - Example App "Light Switch"](./figure_01.png "fig. 1 - Example App 'Light Switch'")
+![fig.1 - Example App "Light Switch"](./images/fig-01-lightswitch-app.gif "fig. 1 - Example App 'Light Switch'")
 
 Solutions for such problem come pretty natural to experienced engineers, but
 for some it may not be as trivial. So let's play with the _Light Switch_
@@ -65,9 +65,9 @@ Both client side and server side code should be very simple to implement.
 
 Let's check the client side code first. We mentioned we're going to use
 [WebSockets](https://en.wikipedia.org/wiki/WebSocket) to keep a persistent
-connection between the client and the server. The one that kind of sticks
-out for me is [Starscream](https://github.com/daltoniam/Starscream), it looks
-like a clean, very easy to use WebSocket client written in Swift.
+connection between the client and the server. For me the one that kind of sticks
+out is [Starscream](https://github.com/daltoniam/Starscream), it's a clean,
+very easy to use WebSocket client written in Swift.
 
 We shouldn't need more than two functions to do the job of sending and
 receiving Light Switch state updates in our transport layer.
@@ -193,7 +193,7 @@ end
 ```
 
 There's two main parts to the code above. We used channels to construct
-a notion of followers (or listeners, if you will), and when a client
+a notion of followers (or participants, if you will), and when a client
 connects to the server it gets added to the channel (`@channel.subscribe`).
 Then, as soon as the server receives a light switch change (`ws.onmessage`)
 from a client, it unwraps the JSON structure, takes out the Light Switch state
