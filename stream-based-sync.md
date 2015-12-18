@@ -202,16 +202,48 @@ then pushes a newly constructed JSON object to the channel, which then
 gets emitted to all of the channel participants. This is how we
 achieve the fan-out.
 
--------------------------------------------------------------------------------
-this is still chapter 2.1
--------------------------------------------------------------------------------
+So there you go, a pretty basic approach to data synchronization.
 
-* Use cases: messaging, photo sharing, file sharing, multiplayer game synchronization,
-  application data synchronization across devices.
+### 2.2 Other Use Cases
+
+In our example (chapter 2.1.1) we demonstrated how to synchronize an ON/OFF
+switch across multiple devices -- it's not a common use case, but it was good
+enough to prove a point.
+
+There are a lot of applications we use every day that use data synchronization
+to share the same state across devices, let's identify a few:
+
+- **e-mail** -- most IMAP clients get up to date by fully synchronizing the
+  list of all e-mails and their unread state. All clients for the same
+  user receive new messages at the same time; marking a message on one client
+  as read reflects the change on other clients as well.
+- **messaging** -- having the same view of messages and conversations
+  across clients; web, mobile, etc. Receiving messages and their delivery
+  and read receipts from other participants on all clients.
+- **photo sharing** -- shared photo stream with all participants.
+- **file sharing** -- backing up a content of a folder from local filesystem
+  to cloud.
+- **text** and **spreadsheet editors** -- having multiple users working on
+  the same text or spreadsheet document at once. Seeing the text coming in
+  as users type in different paragraphs.
+- **multiplayer games** -- same state of the world for all players on the
+  same server. Things as trivial as picking up ammo or weapons from the ground,
+  etc.
+
+The list goes on.
+
+### 2.3 Types of Data Synchronization
+
+{ talk about what rsync does; git is a nice example of document sync;
+light switch sample was an example of a simple model being synced; database
+sync is basically data model, but approached differently }
+
 * Types of data synchronizations (file, document, data model, database)
+
+### 2.4 Other Approaches to Data Synchronization
 * Ways to synchronize (static/absolute: copy, diff; dynamic/relative: deltas;)
 
-### 2.1 What Are Deltas?
+### 2.5 What Are Deltas?
 * Short pieces of information describing model mutations.
 * How to deal with deltas? How to store it and transfer over network?
 
