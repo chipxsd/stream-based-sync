@@ -1,4 +1,6 @@
-# Stream Based Data Synchronization
+# Stream Based Data Synchronization (working title)
+
+_Still a work in progress_
 
 ## 1. Introduction
 
