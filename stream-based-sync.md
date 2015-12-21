@@ -243,18 +243,27 @@ We mentioned **file sharing** -- that means file and directory structure
 replication across clients. If I add a file to the _shared_ folder on one
 of my computers, I'd like that file to appear on other computer too. Same if
 I modify that file on one computer, I want that file along with its content
-to be copied on other machines too. This is what we call
+to be copied on other machines too. The easiest way to implement this would
+be to copy the whole directory (along with all the files and sub-directories)
+every time we change something (add or remove a file, change the content in
+a file). This would work, but that simply does not scale. If I keep adding
+files to the directory, the copy process would become slower with the count
+of files.
+
+Better way to synchronize a file / directory structure is to compare them,
+recognize differences and only copy what doesn't match. This is what we call
 [file-synchronization](https://en.wikipedia.org/wiki/File_synchronization),
-[Rsync](https://en.wikipedia.org/wiki/Rsync) is a very nice example of this,
-so if [Dropbox](https://en.wikipedia.org/wiki/Dropbox_(service)),
-[iCloud Drive](https://en.wikipedia.org/wiki/ICloud#iCloud_Drive), etc.
+[Rsync](https://en.wikipedia.org/wiki/Rsync) is a very nice example of this.
+It's how [Dropbox](https://en.wikipedia.org/wiki/Dropbox_(service)),
+[iCloud Drive](https://en.wikipedia.org/wiki/ICloud#iCloud_Drive) and all
+these file hosting solutions work.
 
 ![fig.3 - File Sharing](./images/fig-03-file-sharing.jpeg "fig. 3 - File Sharing")
 
 Copying file's content over to other clients **every time** we touch it on one
 machine can be a rather expensive operation -- well, it depends on the size
 and type of the content -- but let's say we're dealing with a multiline text
-document, source code for example. Why copy 10 kilobytes of content,
+document, a source code file for example. Why copy 10 kilobytes of content,
 represented by hundreds of lines of code, where we just wanted to change
 a single line of code:
 
@@ -270,7 +279,7 @@ a single line of code:
 ```
 
 In above example, I forgot to specify optional chaining in the line `89:`,
-so that's just a single line of change. One way of describing this content
+that is just a single line of change. One way of describing this content
 change could be through the
 [diff annotations](https://en.wikipedia.org/wiki/Diff_utility), which is
 still lighter than copying the whole file over.
@@ -284,7 +293,7 @@ Due to the nature of the document's data structure (lines of text separated by
 newline characters `\0x0a`), this was fairly simple.
 That's how [distributed revision control systems](https://en.wikipedia.org/wiki/Distributed_version_control)
 describe and apply changes to text files. But at the end of the day,
-we **synchronized document's content**.
+we **synchronized document's content** change.
 
 What about our _Light Switch_ app example (from chapter 2.1.1)? It's nothing
 than **data-model synchronization**.
@@ -293,18 +302,33 @@ than **data-model synchronization**.
 
 As with file and document synchronization, we can just make a copy
 of the data-model and transfer it over the wire to other
-clients -- which is exactly what we did in our example. Or you can
-describe the mutations with minimal information and rather than
-sending the whole model over, you'd just transfer the mutation information.
+clients, which is exactly what we did in our example app. We could afford
+this in our _Light Switch_ example app, seeing that the model was
+extremely small -- it's a single instance of a boolean value
+`private var lightSwitchState:Boolean;`, you can't get smaller than that.
 
-{ talk about what rsync does; git is a nice example of document sync;
-light switch sample was an example of a simple model being synced; database
-sync is basically data model, but approached differently }
-
-* Types of data synchronizations (file, document, data model, database)
+Should the model be more sophisticated (having multiple fields, mutable
+collections, relationships with other structures), copying the whole structure
+along with its values (aka. object graph) over and over again becomes
+expensive.
 
 ### 2.4 Other Approaches to Data Synchronization
-* Ways to synchronize (static/absolute: copy, diff; dynamic/relative: deltas;)
+
+What we've learned from the previous chapter is, that there are different
+ways to get our data up-to-date. The most naive way is to just **copy it**.
+
+**Copying** the data (file, document, data-model) is perfectly fine, when
+you don't care for the amount of data you need to transfer, or if the
+transfer is uni-directional. If I give another example, a simple HTTP GET
+request to a user timeline from Twitter (`GET statuses/user_timeline`) is
+exactly that.
+
+{ give an example with a group of people in the room and one leaves the room }
+
+There are ways to reduce the traffic in these
+kinds of transfers -- what we demonstrated in the previous chapter with the
+text document update (changing a line of code) is that you can compress the
+this information by expressing it with a mutation description.
 
 ### 2.5 What Are Deltas?
 * Short pieces of information describing model mutations.
