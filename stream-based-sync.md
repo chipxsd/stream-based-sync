@@ -37,7 +37,7 @@ for some it may not be as trivial. So let's play with the _Light Switch_
 sample app idea for a little. To narrow down the requirements for this app,
 let's say that the light switch state has to be shared across devices
 via TCP/IP network. I pointed out TCP/IP network because there are also other
-technologies and protocols we could use that provide close proximity
+technologies and protocols we could use which provide close proximity
 communication to achieve this (such as Bluetooth, AdHoc WiFi,
 Multi-peer Connectivity on Apple devices, etc.).
 
@@ -213,7 +213,7 @@ switch across multiple devices -- it's not a common use case, but it was good
 enough to prove a point.
 
 There are a lot of applications we use every day that use data synchronization
-to share the same state across devices, let's identify a few:
+to share the same state across devices, let's identify a few with examples:
 
 - **e-mail** -- most IMAP clients get up to date by fully synchronizing the
   list of all e-mails and their unread state. All clients for the same
@@ -221,7 +221,7 @@ to share the same state across devices, let's identify a few:
   as read reflects the change on other clients as well.
 - **messaging** -- having the same view of messages and conversations
   across clients; web, mobile, etc. Receiving messages and their delivery
-  and read receipts from other participants on all clients.
+  and read receipts from other participants on all the clients.
 - **photo sharing** -- shared photo stream with all participants.
 - **file sharing** -- backing up a content of a folder from local filesystem
   to cloud.
@@ -232,9 +232,70 @@ to share the same state across devices, let's identify a few:
   same server. Things as trivial as picking up ammo or weapons from the ground,
   etc.
 
-The list goes on.
+The list goes on...
 
 ### 2.3 Types of Data Synchronization
+
+Now that we had identified a few of these use cases, let's figure out
+what kind of data we even deal with in those cases.
+
+We mentioned **file sharing** -- that means file and directory structure
+replication across clients. If I add a file to the _shared_ folder on one
+of my computers, I'd like that file to appear on other computer too. Same if
+I modify that file on one computer, I want that file along with its content
+to be copied on other machines too. This is what we call
+[file-synchronization](https://en.wikipedia.org/wiki/File_synchronization),
+[Rsync](https://en.wikipedia.org/wiki/Rsync) is a very nice example of this,
+so if [Dropbox](https://en.wikipedia.org/wiki/Dropbox_(service)),
+[iCloud Drive](https://en.wikipedia.org/wiki/ICloud#iCloud_Drive), etc.
+
+![fig.3 - File Sharing](./images/fig-03-file-sharing.jpeg "fig. 3 - File Sharing")
+
+Copying file's content over to other clients **every time** we touch it on one
+machine can be a rather expensive operation -- well, it depends on the size
+and type of the content -- but let's say we're dealing with a multiline text
+document, source code for example. Why copy 10 kilobytes of content,
+represented by hundreds of lines of code, where we just wanted to change
+a single line of code:
+
+```swift
+    83: //
+    84: // Toggles the private ivar `_lightSwitchState` boolean, updates the
+    85: // background image, plays a sound and transmits the change over network.
+    86: //
+    87: func toggleAndSendLightSwitchState() {
+    88:     self.lightSwitchState = !self.lightSwitchState
+>   89:     self.lightSwitchClient.sendLightSwitchState(self.lightSwitchState)
+    90: }
+```
+
+In above example, I forgot to specify optional chaining in the line `89:`,
+so that's just a single line of change. One way of describing this content
+change could be through the
+[diff annotations](https://en.wikipedia.org/wiki/Diff_utility), which is
+still lighter than copying the whole file over.
+
+```patch
+--- 89:     self.lightSwitchClient.sendLightSwitchState(self.lightSwitchState)
++++ 89:     self.lightSwitchClient?.sendLightSwitchState(self.lightSwitchState)
+```
+
+Due to the nature of the document's data structure (lines of text separated by
+newline characters `\0x0a`), this was fairly simple.
+That's how [distributed revision control systems](https://en.wikipedia.org/wiki/Distributed_version_control)
+describe and apply changes to text files. But at the end of the day,
+we **synchronized document's content**.
+
+What about our _Light Switch_ app example (from chapter 2.1.1)? It's nothing
+than **data-model synchronization**.
+
+![fig.4 - Data Model](./images/fig-04-data-model "fig. 4 - Data Model")
+
+As with file and document synchronization, we can just make a copy
+of the data-model and transfer it over the wire to other
+clients -- which is exactly what we did in our example. Or you can
+describe the mutations with minimal information and rather than
+sending the whole model over, you'd just transfer the mutation information.
 
 { talk about what rsync does; git is a nice example of document sync;
 light switch sample was an example of a simple model being synced; database
