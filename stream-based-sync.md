@@ -225,8 +225,8 @@ to share the same state across devices, let's identify a few with examples:
 - **photo sharing** -- shared photo stream with all participants.
 - **file sharing** -- backing up a content of a folder from local filesystem
   to cloud.
-- **text** and **spreadsheet editors** -- having multiple users working on
-  the same text or spreadsheet document at once. Seeing the text coming in
+- online **text** and **spreadsheet editors** -- having multiple users working
+  on the same text or spreadsheet document at once. Seeing the text coming in
   as users type in different paragraphs.
 - **multiplayer games** -- same state of the world for all players on the
   same server. Things as trivial as picking up ammo or weapons from the ground,
@@ -296,7 +296,7 @@ describe and apply changes to text files. But at the end of the day,
 we **synchronized document's content** change.
 
 What about our _Light Switch_ app example (from chapter 2.1.1)? It's nothing
-than **data-model synchronization**.
+more than **data-model synchronization**.
 
 ![fig.4 - Data Model](./images/fig-04-data-model "fig. 4 - Data Model")
 
@@ -312,18 +312,50 @@ collections, relationships with other structures), copying the whole structure
 along with its values (aka. object graph) over and over again becomes
 expensive.
 
-### 2.4 Other Approaches to Data Synchronization
+### 2.4 Approaches to Data Synchronization
 
 What we've learned from the previous chapter is, that there are different
 ways to get our data up-to-date. The most naive way is to just **copy it**.
 
-**Copying** the data (file, document, data-model) is perfectly fine, when
-you don't care for the amount of data you need to transfer, or if the
-transfer is uni-directional. If I give another example, a simple HTTP GET
-request to a user timeline from Twitter (`GET statuses/user_timeline`) is
-exactly that.
+#### 2.4.1 Absolute Synchronization (copying)
+
+**Copying** and replacing the data (file, document, data-model) is perfectly
+fine, when we don't care for the amount of data we need to transfer, since
+the server will always return a fully populated dataset. Also works good when
+the synchronization is uni-directional, meaning the client
+always asks the server for the source of truth (e.g. refreshing the
+weekly weather forecast)
+
+The other drawback of copy based synchronization is not only the potential
+high bandwidth cost but also, if we need to be aware of the changes when
+replacing our old dataset with the newly up-to-date one, we'd need to
+compare (diff) the two datasets first before replacing the old one.
+That process burns twice as much memory (since you need to hold both sets
+in memory) and CPU time for as much as there are elements in both sets
+(which gives us the O(n ⋁ m)).
+
+![fig.5 - Diffing Datasets](./images/fig-04-diffing-datasets.png "fig. 5 - Diffing Datasets")
+
+#### 2.4.2 Relative Synchronization (based on changes)
 
 { give an example with a group of people in the room and one leaves the room }
+
+Suppose you walk into a room where there's a group of people, and you
+ask a person, _"who's here?"_. That person will respond: _"There's Alex, Blake
+and Carol, and Dan's also here, Emily and Frank"_. In your mind you've
+made a list of people that are in the room. Now "Blake" walks out of
+the room but you weren't paying attention, so you ask the same person,
+_"What happened?"_ and the person responds: _"there's Alex, Carol, Dan, Emily
+and Frank"_ -- it's like talking to an idiot.
+
+You'd be better off with an answer like: _"Blake just left"_, instead of
+listening the guy go through the list of people that are still in the room.
+That's assuming the person we're asking knew when was the last time you were
+paying attention. It seems like a lot of work for that person to keep track
+of what others take notice off.
+
+{ explain it's easier for both the person we're asking what changed to
+remind him what's the last thing we noticed }
 
 There are ways to reduce the traffic in these
 kinds of transfers -- what we demonstrated in the previous chapter with the
@@ -333,7 +365,6 @@ this information by expressing it with a mutation description.
 ### 2.5 What Are Deltas?
 * Short pieces of information describing model mutations.
 * How to deal with deltas? How to store it and transfer over network?
-
 
 ## 3. Stream Based Synchronization
 
