@@ -373,7 +373,7 @@ as deltas.
 
 Delta encoding is a way to describe differences between two datasets
 (file, document, data-model, etc.). We can use these short pieces of
-information to apply them onto our big dataset (in form of mutations) to
+information to apply onto our dataset (in form of mutations) to
 get it up-to-date which we have learned that it significantly reduces
 data redundancy in the synchronization processes.
 
