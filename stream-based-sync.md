@@ -247,16 +247,17 @@ to be copied on other machines too. The easiest way to implement this would
 be to copy the whole directory (along with all the files and sub-directories)
 every time we change something (add or remove a file, change the content in
 a file). This would work, but that simply does not scale. If I keep adding
-files to the directory, the copy process would become slower with the count
+files to the directory, the copy process would become longer with the count
 of files.
 
 Better way to synchronize a file / directory structure is to compare them,
 recognize differences and only copy what doesn't match. This is what we call
 [file-synchronization](https://en.wikipedia.org/wiki/File_synchronization),
 [Rsync](https://en.wikipedia.org/wiki/Rsync) is a very nice example of this.
-It's how [Dropbox](https://en.wikipedia.org/wiki/Dropbox_(service)),
+It's similar to how [Dropbox](https://en.wikipedia.org/wiki/Dropbox_(service)),
 [iCloud Drive](https://en.wikipedia.org/wiki/ICloud#iCloud_Drive) and all
-these file hosting solutions work.
+these file hosting solutions minimize the work in order to get the files
+in sync with all machines.
 
 ![fig.3 - File Sharing](./images/fig-03-file-sharing.jpeg "fig. 3 - File Sharing")
 
@@ -278,8 +279,8 @@ a single line of code:
     90: }
 ```
 
-In above example, I forgot to specify optional chaining in the line `89:`,
-that is just a single line of change. One way of describing this content
+In above example, I forgot to specify optional chaining in the line `89:`.
+That is just a single line of change. One way of describing this content
 change could be through the
 [diff annotations](https://en.wikipedia.org/wiki/Diff_utility), which is
 still lighter than copying the whole file over.
@@ -290,7 +291,7 @@ still lighter than copying the whole file over.
 ```
 
 Due to the nature of the document's data structure (lines of text separated by
-newline characters `\0x0a`), this was fairly simple.
+newline characters `\0x0a`), this was fairly easy.
 That's how [distributed revision control systems](https://en.wikipedia.org/wiki/Distributed_version_control)
 describe and apply changes to text files. But at the end of the day,
 we **synchronized document's content** change.
@@ -309,13 +310,15 @@ extremely small -- it's a single instance of a boolean value
 
 Should the model be more sophisticated (having multiple fields, mutable
 collections, relationships with other structures), copying the whole structure
-along with its values (aka. object graph) over and over again becomes
+along with its values (whole object graph) over and over again becomes
 expensive.
 
 ### 2.4 Approaches to Data Synchronization
 
 What we've learned from the previous chapter is, that there are different
-ways to get our data up-to-date. The most naive way is to just **copy it**.
+ways to get our data up-to-date. The most naive way is to just **copy it**,
+which is in a lot of cases less than ideal. Better way to get the data
+up-to-date is to only **apply changes** to it. Let's visit both approaches.
 
 #### 2.4.1 Absolute Synchronization (copying)
 
@@ -324,46 +327,56 @@ fine, when we don't care for the amount of data we need to transfer, since
 the server will always return a fully populated dataset. Also works good when
 the synchronization is uni-directional, meaning the client
 always asks the server for the source of truth (e.g. refreshing the
-weekly weather forecast)
+weekly weather forecast, or refreshing a list of RSVPs).
 
 The other drawback of copy based synchronization is not only the potential
-high bandwidth cost but also, if we need to be aware of the changes when
-replacing our old dataset with the newly up-to-date one, we'd need to
-compare (diff) the two datasets first before replacing the old one.
-That process burns twice as much memory (since you need to hold both sets
-in memory) and CPU time for as much as there are elements in both sets
-(which gives us the O(n ⋁ m)).
+higher bandwidth cost due to transmitting the same data for the most part
+(which we call data redundancy), but also if we need to be aware of the
+changes when replacing our old dataset with the newly up-to-date one,
+we'd need to compare (differentiate) the two datasets first, before
+replacing the old one. That process burns twice as much memory (since
+you need to hold both sets in memory) and CPU time for as much as
+there are elements in both sets (which gives us the O(n ⋁ m)).
 
-![fig.5 - Diffing Datasets](./images/fig-04-diffing-datasets.png "fig. 5 - Diffing Datasets")
+![fig.5 - Differencing Datasets](./images/fig-04-differencing-datasets.png "fig. 5 - Differencing Datasets")
+
+Suppose you're invited to a dinner party and you ask the receptionist
+_"Who's here?"_. That person will respond: _"There's Alex, Blake, Caroline,
+Dan, Emily and George."_. In your mind you've made a list of guests from what
+you just heard. Now one of the guests leaves, but you weren't paying
+attention, so you go ask the receptionist, _"What about now?"_, and the
+person responds: _"There's Alex, Caroline, Dan, Emily and George"_ -- it's
+like talking to an idiot. So in order to figure out what has changed, if
+anyone left or someone new joined the party, you'd need to remember the
+list of guests from before and run it against the one you just heard.
 
 #### 2.4.2 Relative Synchronization (based on changes)
 
-{ give an example with a group of people in the room and one leaves the room }
-
-Suppose you walk into a room where there's a group of people, and you
-ask a person, _"who's here?"_. That person will respond: _"There's Alex, Blake
-and Carol, and Dan's also here, Emily and Frank"_. In your mind you've
-made a list of people that are in the room. Now "Blake" walks out of
-the room but you weren't paying attention, so you ask the same person,
-_"What happened?"_ and the person responds: _"there's Alex, Carol, Dan, Emily
-and Frank"_ -- it's like talking to an idiot.
-
 You'd be better off with an answer like: _"Blake just left"_, instead of
-listening the guy go through the list of people that are still in the room.
-That's assuming the person we're asking knew when was the last time you were
-paying attention. It seems like a lot of work for that person to keep track
-of what others take notice off.
+listening the person go through the whole list of people that are still
+at the party. That's assuming the person you're asking knew when was
+the last time you were paying attention. It just seems like a lot of
+work for the receptionist to keep track of what others take notice off.
+So, to make it a little easier you should rephrase the question to: _"What has
+happened after I arrived?"_.
 
-{ explain it's easier for both the person we're asking what changed to
-remind him what's the last thing we noticed }
+The receptionist would just go through the list where he keeps the names
+of the guests coming in and going out, look for the record when you arrived
+and narrate all the events that happened after that.
 
-There are ways to reduce the traffic in these
-kinds of transfers -- what we demonstrated in the previous chapter with the
-text document update (changing a line of code) is that you can compress the
-this information by expressing it with a mutation description.
+That is an example, when you update data only with small differences, based
+on previous events that you are already familiar with, to avoid copying
+the whole data set. These small differences or **changes** are also known
+as deltas.
 
 ### 2.5 What Are Deltas?
-* Short pieces of information describing model mutations.
+
+Delta encoding is a way to describe differences between two datasets
+(file, document, data-model, etc.). We can use these short pieces of
+information to apply them onto our big dataset (in form of mutations) to
+get it up-to-date which we have learned that it significantly reduces
+data redundancy in the synchronization processes.
+
 * How to deal with deltas? How to store it and transfer over network?
 
 ## 3. Stream Based Synchronization
