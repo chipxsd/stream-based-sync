@@ -317,8 +317,9 @@ expensive.
 
 What we've learned from the previous chapter is, that there are different
 ways to get our data up-to-date. The most naive way is to just **copy it**,
-which is in a lot of cases less than ideal. Better way to get the data
-up-to-date is to only **apply changes** to it. Let's visit both approaches.
+which is in a lot of cases less than ideal. Better way to get the existing
+data up-to-date is to only **apply changes** to it. Let's visit
+both approaches.
 
 #### 2.4.1 Absolute Synchronization (copying)
 
@@ -377,7 +378,17 @@ information to apply onto our dataset (in form of mutations) to
 get it up-to-date which we have learned that it significantly reduces
 data redundancy in the synchronization processes.
 
-* How to deal with deltas? How to store it and transfer over network?
+#### 2.5.1 How to Encode Deltas?
+
+{ Write how to deal with deltas? How to store it and transfer over network? }
+
+Of course, depending on our application, we'd want to encode the deltas
+in the way that is suitable for our application data model. Taking a look
+at the few examples we've set out in **chapter 2.3**, application can
+deal with pure arbitrary data (files), document (text files),
+data-model (different data structures).
+
+{ give a few examples on how deltas look for each data model }
 
 ## 3. Stream Based Synchronization
 
