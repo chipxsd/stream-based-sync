@@ -282,7 +282,7 @@ a single line of code:
 In above example, I forgot to specify optional chaining in the line `89:`.
 That is just a single line of change. One way of describing this content
 change could be through the
-[diff annotations](https://en.wikipedia.org/wiki/Diff_utility), which is
+[unified diff annotation](https://en.wikipedia.org/wiki/Diff_utility), which is
 still lighter than copying the whole file over.
 
 ```patch
@@ -380,15 +380,78 @@ data redundancy in the synchronization processes.
 
 #### 2.5.1 How to Encode Deltas?
 
-{ Write how to deal with deltas? How to store it and transfer over network? }
-
 Of course, depending on our application, we'd want to encode the deltas
 in the way that is suitable for our application data model. Taking a look
-at the few examples we've set out in **chapter 2.3**, application can
-deal with pure arbitrary data (files), document (text files),
-data-model (different data structures).
+at the few examples we've set out in **chapter 2.3**, applications can
+work with pure arbitrary data (binary files), document (text files, xml,
+spread sheets), data-model (data structures), etc.
 
-{ give a few examples on how deltas look for each data model }
+But generally, we'd want our deltas to give us instructions on how to
+modify our current data set based on three simple operations:
+
+- **insert** -- adds new values to our data set
+- **update** -- updates existing values in our data set
+- **delete** -- deletes existing values from our data set
+
+We already went trough an example on encoding deltas for text changes in
+**chapter 2.3** where we had to change a single line of text in a multi-line
+text file (swift source code).
+
+##### Example of Delta Encoding of Binary Data
+
+Given a file of arbitrary data (of 80 bytes):
+
+```hexdump
+0000000: 4749 4654 2B31 0d00 0d00 9100 00b6 6257  GIFT+1........bW
+0000010: 0804 0456 2c27 e5aa 7f21 f904 0000 0000  ...V,'...!......
+0000020: 002c 0000 0000 0d00 0d00 0002 318c 8f29  .,..........1..)
+0000030: 3000 7986 944f 8823 260d 0feb b620 0b03  0.y..O.#&.... ..
+0000040: 2e97 e1a4 0f79 920c 60a5 28e5 c452 abc6  .....y..`.(..R..
+```
+
+we'd like to change the value of tree bytes starting at offset `0x03`,
+and append 16 more bytes at the end of the array. We could encode the
+delta as:
+
+```javascript
+[
+  {
+    operation: "update",
+    offset: 0x03,
+    values: [ 0x38, 0x39, 0x61 ]
+  }, {
+    operation: "insert",
+    offset: 0x50,
+    values: [ 0xCE, 0xE1, 0x50, 0x96, 0x89, 0x48, 0x9D, 0x02, 0x43, 0x62,
+      0x8D, 0x98, 0x28, 0x00, 0x00, 0x3B ]
+  }
+]
+```
+
+_**Note**_ that I chose to describe the data structure above using a
+JSON format. We can serialize the delta information in any format
+that suits the purpose. Here are a few from the top of my head:
+[Thrift](https://en.wikipedia.org/wiki/Apache_Thrift),
+[Protobuff](https://en.wikipedia.org/wiki/Protocol_Buffers),
+[CapnProto](https://github.com/sandstorm-io/capnproto), however you can chose
+to implement your own proprietary serialization protocol.
+
+We could use exactly the same delta encoding approach to describe a change of
+a text file -- if you remember our one line change in a swift source
+code in **chapter 2.3**. This type of delta encoding compressed the data
+even more than using unified diff patches.
+
+```javascript
+{
+  operation: "insert",
+  offset: 2781,
+  values: [ "?" ]
+}
+```
+
+##### Example of Delta Encoding of a Custom Data Model
+
+
 
 ## 3. Stream Based Synchronization
 
