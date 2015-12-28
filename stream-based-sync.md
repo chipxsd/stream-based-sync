@@ -362,8 +362,8 @@ So, to make it a little easier you should rephrase the question to: _"What has
 happened after I arrived?"_.
 
 The receptionist would just go through the list where he keeps the names
-of the guests coming in and going out, look for the record when you arrived
-and narrate all the events that happened after that.
+of the guests joining and leaving the party, look for the record when you
+arrived and narrate all the events that happened after that.
 
 That is an example, when you update data only with small differences, based
 on previous events that you are already familiar with, to avoid copying
@@ -460,7 +460,10 @@ character at the right location, which gives us the same result:
 
 ##### Delta Encoding Example of a Custom Data Model
 
-{ give an example of deltas applied onto the guest list data model }
+Back to our guest list from the previous **chapter 2.4**. Client's data model
+shouldn't be more than just a set containing the names of the guests that are
+present at the party. Based on the first response from the receptionist,
+the set would contain the following names:
 
 ```javascript
 {
@@ -468,9 +471,13 @@ character at the right location, which gives us the same result:
 }
 ```
 
+Asking the recipient for any changes that have occurred after a certain
+period, the response would contain an encoded delta telling the client
+to remove _"Blake"_ from its set.
+
 ```javascript
 {
-  operation: "left",
+  operation: "delete",
   guest: [ "Blake" ]
 }
 ```
