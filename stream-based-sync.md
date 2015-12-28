@@ -460,6 +460,8 @@ character at the right location, which gives us the same result:
 
 ##### Delta Encoding Example of a Custom Data Model
 
+{ give an example of deltas applied onto the guest list data model }
+
 ```javascript
 {
   guests: [ "Alex", "Blake", "Caroline", "Dan", "Emily", "George" ]
