@@ -330,14 +330,14 @@ the synchronization is uni-directional, meaning the client
 always asks the server for the source of truth (e.g. refreshing the
 weekly weather forecast, or refreshing a list of RSVPs).
 
-The other drawback of copy based synchronization is not only the potential
-higher bandwidth cost due to transmitting the same data for the most part
-(which we call data redundancy), but also if we need to be aware of the
-changes when replacing our old dataset with the newly up-to-date one,
-we'd need to compare (differentiate) the two datasets first, before
-replacing the old one. That process burns twice as much memory (since
-you need to hold both sets in memory) and CPU time for as much as
-there are elements in both sets (which gives us the O(n ⋁ m)).
+The other drawback of copy based synchronization for clients is not only
+the potential higher bandwidth cost due to transmitting the same data
+for the most part (which we call data redundancy), but also if we
+need to be aware of the changes when replacing our old dataset with
+the newly up-to-date one, we'd need to compare (differentiate) the two
+datasets first, before replacing the old one. That process burns twice
+as much memory (since you need to hold both sets in memory) and CPU time
+for as much as there are elements in both sets (which gives us the O(n ⋁ m)).
 
 ![fig.5 - Differencing Datasets](./images/fig-04-differencing-datasets.png "fig. 5 - Differencing Datasets")
 
@@ -375,8 +375,8 @@ as deltas.
 Delta encoding is a way to describe differences between two datasets
 (file, document, data-model, etc.). We can use these short pieces of
 information to apply onto our dataset (in form of mutations) to
-get it up-to-date which we have learned that it significantly reduces
-data redundancy in the synchronization processes.
+get it up-to-date and from what we've just learned is that it can
+significantly reduce the data redundancy in the synchronization processes.
 
 #### 2.5.1 How to Encode Deltas?
 
@@ -397,7 +397,7 @@ We already went trough an example on encoding deltas for text changes in
 **chapter 2.3** where we had to change a single line of text in a multi-line
 text file (swift source code).
 
-##### Example of Delta Encoding of Binary Data
+##### Delta Encoding Example of Binary Data
 
 Given a file of arbitrary data (of 80 bytes):
 
@@ -436,10 +436,19 @@ that suits the purpose. Here are a few from the top of my head:
 [CapnProto](https://github.com/sandstorm-io/capnproto), however you can chose
 to implement your own proprietary serialization protocol.
 
-We could use exactly the same delta encoding approach to describe a change of
-a text file -- if you remember our one line change in a swift source
-code in **chapter 2.3**. This type of delta encoding compressed the data
-even more than using unified diff patches.
+We could use the exact same delta encoding approach to describe a change in
+a text file -- if we bring the example from **chapter 2.3** to mind, the one
+where we used the unified diff patch to update a single line of code.
+
+```patch
+--- 89:     self.lightSwitchClient.sendLightSwitchState(self.lightSwitchState)
++++ 89:     self.lightSwitchClient?.sendLightSwitchState(self.lightSwitchState)
+```
+
+Don't be mistaken, the unified diff patch is still a _delta_, encoded
+differently though, but we could get rid of both, the before and after values
+(the lines that start with `---` and `+++`) in favor of inserting a single
+character at the right location, which gives us the same result:
 
 ```javascript
 {
@@ -449,9 +458,20 @@ even more than using unified diff patches.
 }
 ```
 
-##### Example of Delta Encoding of a Custom Data Model
+##### Delta Encoding Example of a Custom Data Model
 
+```javascript
+{
+  guests: [ "Alex", "Blake", "Caroline", "Dan", "Emily", "George" ]
+}
+```
 
+```javascript
+{
+  operation: "left",
+  guest: [ "Blake" ]
+}
+```
 
 ## 3. Stream Based Synchronization
 
