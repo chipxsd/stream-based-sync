@@ -482,6 +482,15 @@ to remove _"Blake"_ from its set.
 }
 ```
 
+When applying the delta on our model, the dataset should contain following
+names:
+
+```javascript
+{
+  guests: [ "Alex", "Caroline", "Dan", "Emily", "George" ]
+}
+```
+
 ## 3. Stream Based Synchronization
 
 ### 3.1 The Motivation
