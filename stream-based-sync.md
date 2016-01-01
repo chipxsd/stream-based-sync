@@ -46,12 +46,12 @@ Multi-peer Connectivity on Apple devices, etc.).
 Let's make a list of components we need to have to achieve this:
 
 - **a simple server** -- which can be a lightweight service (process)
-  written in C using standard library, or something written in higher-lever
+  written in C using standard library, or something written in higher-level
   languages (Scala, Ruby, Python, Java, etc.) using off-the-shelf libraries.
   For the sake of simplicity, we'll use a simple web socket server in
-  Ruby that accepts JSON structure with _Light Switch_ state information,
-  and fans out the new state to other clients. No persistence of the
-  _Light Swtich_ state required.
+  Ruby that accepts a JSON structure from clients with _Light Switch_
+  state information, and fans out the new state to other clients.
+  No persistence of the _Light Swtich_ state is required.
 
 - **mobile clients** -- an app that connects to our lightweight server
   capable of receiving and sending _Light Switch_ state changes through
@@ -128,8 +128,9 @@ public func websocketDidReceiveMessage(socket: WebSocket, text: String) {
 
 The UI controller implementation should be symmetrical to the transport
 layer implementation. Again, two functions -- one sending the controller's
-Light Switch state to the transport layer, and the other one should be an
-implementation of the delegate callback which the transport layer calls.
+Light Switch state to the transport layer whenever user taps on the button,
+and the other one should be an implementation of the delegate
+callback which the transport layer calls, which toggles the switch in the UI.
 
 ```swift
 /// The local Light Switch state.
@@ -169,8 +170,8 @@ using a library called [em-websocket](https://github.com/igrigorik/em-websocket)
 # A global variable keeping the light switch state.
 @lightSwitchState = false;
 
-# Channel instance available across all web socket connections. We'll use
-# this channel to emit the changes to all open connections.
+# Global channel instance available across all web socket connections. We'll
+# use this channel to emit the changes to all open connections.
 @channel = EM::Channel.new
 
 EM::WebSocket.run(:host => "0.0.0.0", :port => 8080) do |ws|
@@ -222,12 +223,12 @@ to share the same state across devices, let's identify a few with examples:
 - **messaging** -- having the same view of messages and conversations
   across clients; web, mobile, etc. Receiving messages and their delivery
   and read receipts from other participants on all the clients.
-- **photo sharing** -- shared photo stream with all participants.
+- **photo sharing** -- shared photo stream with all subscribers.
 - **file sharing** -- backing up a content of a folder from local filesystem
   to cloud.
-- online **text** and **spreadsheet editors** -- having multiple users working
-  on the same text or spreadsheet document at once. Seeing the text coming in
-  as users type in different paragraphs.
+- online **text** and **spreadsheet editors** -- having multiple users
+  editing the same text or spreadsheet document at the same time. Seeing
+  the text coming in as users type in different paragraphs.
 - **multiplayer games** -- same state of the world for all players on the
   same server. Things as trivial as picking up ammo or weapons from the ground,
   etc.
@@ -239,11 +240,11 @@ The list goes on...
 Now that we had identified a few of these use cases, let's figure out
 what kind of data we even deal with in those cases.
 
-We mentioned **file sharing** -- that means file and directory structure
+We mentioned **file sharing** -- that means file content and directory structure
 replication across clients. If I add a file to the _shared_ folder on one
 of my computers, I'd like that file to appear on other computer too. Same if
 I modify that file on one computer, I want that file along with its content
-to be copied on other machines too. The easiest way to implement this would
+to be copied to other machines too. The easiest way to implement this would
 be to copy the whole directory (along with all the files and sub-directories)
 every time we change something (add or remove a file, change the content in
 a file). This would work, but that simply does not scale. If I keep adding
@@ -317,7 +318,7 @@ expensive.
 
 What we've learned from the previous chapter is, that there are different
 ways to get our data up-to-date. The most naive way is to just **copy it**,
-which is in a lot of cases less than ideal. Better way to get the existing
+which in a lot of cases, is less than ideal. Better way to get the existing
 data up-to-date is to only **apply changes** to it. Let's visit
 both approaches.
 
@@ -349,7 +350,8 @@ attention, so you go ask the receptionist, _"What about now?"_, and the
 person responds: _"There's Alex, Caroline, Dan, Emily and George"_ -- it's
 like talking to an idiot. So in order to figure out what has changed, if
 anyone left or someone new joined the party, you'd need to remember the
-list of guests from before and run it against the one you just heard.
+list of guests from before and run it against the one you just heard, and
+check for differences.
 
 #### 2.4.2 Relative Synchronization (based on changes)
 
@@ -366,7 +368,7 @@ of the guests joining and leaving the party, look for the record when you
 arrived and narrate all the events that happened after that.
 
 That is an example, when you update data only with small differences, based
-on previous events that you are already familiar with, to avoid copying
+on previous events that you're already familiar with, to avoid copying
 the whole data set. These small differences or **changes** are also known
 as deltas.
 
@@ -375,8 +377,8 @@ as deltas.
 Delta encoding is a way to describe differences between two datasets
 (file, document, data-model, etc.). We can use these short pieces of
 information to apply onto our dataset (in form of mutations) to
-get it up-to-date and from what we've just learned is that it can
-significantly reduce the data redundancy in the synchronization processes.
+get it up-to-date and from what we've just learned, is that it can
+significantly reduce the data redundancy in synchronization processes.
 
 #### 2.5.1 How to Encode Deltas?
 
@@ -387,15 +389,16 @@ work with pure arbitrary data (binary files), document (text files, xml,
 spread sheets), data-model (data structures), etc.
 
 But generally, we'd want our deltas to give us instructions on how to
-modify our current data set based on three simple operations:
+modify our old data set, so that it will match the new one, based on three
+simple operation types:
 
 - **insert** -- adds new values to our data set
 - **update** -- updates existing values in our data set
 - **delete** -- deletes existing values from our data set
 
-We already went trough an example on encoding deltas for text changes in
-**chapter 2.3** where we had to change a single line of text in a multi-line
-text file (swift source code).
+If you remember **chapter 2.3** already demonstrated one of the delta encoding
+approaches suitable for text changes -- it was the example, where we had to
+change a single line of text in a multi-line text file (swift source code).
 
 ##### Delta Encoding Example of Binary Data
 
@@ -482,7 +485,7 @@ to remove _"Blake"_ from its set.
 }
 ```
 
-When applying the delta on our model, the dataset should contain following
+When applying the delta onto our model, the dataset should contain following
 names:
 
 ```javascript
