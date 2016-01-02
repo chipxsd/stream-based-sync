@@ -196,7 +196,7 @@ end
 ```
 
 There's two main parts to the code above. We used channels to construct
-a notion of followers (or participants, if you will), and when a client
+a notion of followers (or subscribers, if you will), and when a client
 connects to the server it gets added to the channel (`@channel.subscribe`).
 Then, as soon as the server receives a light switch change (`ws.onmessage`)
 from a client, it unwraps the JSON structure, takes out the Light Switch state
@@ -372,7 +372,7 @@ on previous events that you're already familiar with, to avoid copying
 the whole data set. These small differences or **changes** are also known
 as deltas.
 
-### 2.5 What Are Deltas?
+### 2.5 What are Deltas?
 
 Delta encoding is a way to describe differences between two datasets
 (file, document, data-model, etc.). We can use these short pieces of
@@ -399,6 +399,9 @@ simple operation types:
 If you remember **chapter 2.3** already demonstrated one of the delta encoding
 approaches suitable for text changes -- it was the example, where we had to
 change a single line of text in a multi-line text file (swift source code).
+
+How do we deal with other kinds of data structures? Let's got over
+a couple:
 
 ##### Delta Encoding Example of Binary Data
 
@@ -496,15 +499,45 @@ names:
 
 ## 3. Stream Based Synchronization
 
+There are many approaches to get our data model synchronized with the server,
+we'll be taking a closer look at the synchronization approach that
+leverages persistent streams. Now, before we dwell on what stream
+based synchronization is and how we can leverage it, I'd like to
+discuss the motivation behind it -- specify the requirements, if you will.
+
 ### 3.1 The Motivation
-* In our case we're solving the synchronization of shared content between
+
+In most cases, developers want to solve the synchronization of shared
+data model between clients and the server with minimum data redundancy.
+This not only lowers the cost of storage and bandwidth on a hosted system,
+but also saves CPU time. We already discussed this a little in
+**chapter 2.4.1 -- Absolute Synchronization**, and **chapter 2.5 --
+What are Deltas?**.
+
+One of the important requirements to most folks is also speed. How fast
+we can get a user action delivered to the server -- by _"user action"_, I mean
+a mutation that a user caused to his data model. So in other words, get the
+deltas off of the clients and onto the server as quick as possible.
+
+Another key thing is having short and fast writes on the server, which lowers
+the response time of a client's request and also reduces the load on
+the system -- all these things describe good concurrency characteristics.
+
+Lastly, a very important aspect to system design is scaling. System can
+grow with the number of users it server as does with the amount of the
+content generated its by users. So when modeling the data structures
+(schema) we must think about the data distribution and replication, which
+should be easy and painless. That not only provides fail safety -- in case
+of data corruption and outages -- but also load balancing.
+
+* [x] In our case we're solving the synchronization of shared content between
   clients (mobile and desktop devices, web browers) and servers (nodes).
-* Get deltas off of clients as quick as possible.
-* Fast writes on the server (concurrent).
-* Easier data distribution across nodes.
+* [x] Get deltas off of clients as quick as possible.
+* [x] Fast writes on the server (concurrent).
+* [x] Easier data distribution across nodes.
 
 ### 3.2 Data Schema
-* Think of streams as old magnetic tapes with WORM behavior (immutable,
+* Think of streams as linear magnetic tapes with WORM behavior (immutable,
   append only).
 * Tiny bits of information describing different operations -- aka events.
 * Event describe mutations (inserts, deletes, updates).
@@ -525,7 +558,7 @@ names:
 * Conflict resolution.
 
 
-## 5. Total Order
+## 5. Order of Events
 * How to keep the events published by clients in the correct order?
 
 ### 5.1 Synchronized Sequential Writes
