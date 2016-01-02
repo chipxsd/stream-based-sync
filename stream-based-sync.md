@@ -518,8 +518,8 @@ names:
 
 ## 3. Stream Based Synchronization
 
-There are many approaches to get our data model synchronized with the server,
-we'll be taking a closer look at the synchronization approach that
+There are plenty of approaches to get our data model synchronized with the
+server, we'll be taking a closer look at the synchronization approach that
 leverages persistent streams. Now, before we dwell on what stream
 based synchronization is and how we can leverage it, I'd like to
 discuss the motivation behind it -- specify the requirements, if you will.
@@ -541,30 +541,37 @@ covered in a cross mark, the other one with a check mark }
 
 One of the important requirements to most folks is also speed. How fast
 we can get a user action delivered to the server -- by _"user action"_, I mean
-a mutation that a user caused to his data model. So in other words, get the
-deltas off of the clients and onto the server as quick as possible.
+a mutation that a user caused to his data model that needs to be distributed
+across other devices. So in other words, get the deltas off of the
+clients, onto the server and back to other users' devices
+as quick as possible.
+
+![fig.9 - Real Time Distribution of Deltas](./images/fig-09-real-time-distribution-of-deltas.png "fig. 9 - Real Time Distributions of Deltas")
+
+{ fig.9 - picture five mobile phones all connected to a server, and one
+of the devices is sending a short piece of information }
 
 Another key thing is having short and fast writes on the server, which lowers
 the response time of a client's request and also reduces the load on
 the system -- all these things aim toward good concurrency characteristics.
 
-![fig.9 - Fast Writes](./images/fig-09-fast-writes.png "fig. 9 - Fast Writes")
+![fig.10 - Fast Writes](./images/fig-10-fast-writes.png "fig. 10 - Fast Writes")
 
-{ fig.9 - sketch a path to the database with 5 lanes merging into one, with
+{ fig.10 - sketch a path to the database with 5 lanes merging into one, with
 long marks in lanes indicating writes to database; then another diagram with
 shorter marks in the lanes, indicating shorter writes }
 
 Lastly, a very important aspect to system design is scalability. A system can
-grow with the number of users it server, as does with the amount of the
+grow with the number of users it serves, as does with the amount of the
 content generated its by users. So when modeling the data structures
-(schema) we must also account for data distribution and replication, which
+(schema), we must also account for data distribution and replication, which
 should be easy and painless. Having a distributable system not only provides
-fail safety -- in case of data corruption or outages -- but it also makes
-it easy to employ load balancing services.
+fail safety -- in case of outages and data corruption -- but it also makes
+it easy to employ load balancing approaches.
 
-![fig.10 - Distributed System](./images/fig-10-distributed-system.png "fig. 10 - Distributed System")
+![fig.11 - Distributed System](./images/fig-10-distributed-system.png "fig. 11 - Distributed System")
 
-{ fig.10 - sketch a database cluster ring with a few services connected
+{ fig.11 - sketch a database cluster ring with a few services connected
 to them, where one of the services is dead, and a few clients connected
 to services. }
 
