@@ -61,6 +61,10 @@ Let's make a list of components we need to have to achieve this:
 
 ![fig.2 - Example App Architecture](./figure_02.png "fig. 2 - Example App Architecture")
 
+{ fig.2 - draw the light switch architecture, that has a server and a client
+being connected with a two-way arrow and a JSON structure floating between
+them }
+
 Both client side and server side code should be very simple to implement.
 
 #### 2.1.3 Client Side
@@ -302,6 +306,9 @@ more than **data-model synchronization**.
 
 ![fig.4 - Data Model](./images/fig-04-data-model "fig. 4 - Data Model")
 
+{ fig.4 - draw the light switch JSON structure (as text) being duplicated
+with a mouse cursor having a (+) icon with it }
+
 As with file and document synchronization, we can just make a copy
 of the data-model and transfer it over the wire to other
 clients, which is exactly what we did in our example app. We could afford
@@ -340,7 +347,10 @@ datasets first, before replacing the old one. That process burns twice
 as much memory (since you need to hold both sets in memory) and CPU time
 for as much as there are elements in both sets (which gives us the O(n ⋁ m)).
 
-![fig.5 - Differencing Datasets](./images/fig-04-differencing-datasets.png "fig. 5 - Differencing Datasets")
+![fig.5 - Differencing Datasets](./images/fig-05-differencing-datasets.png "fig. 5 - Differencing Datasets")
+
+{ fig.5 - draw a filled out exam with ABCD answers, a stencil with
+correct answers, resulting in a exam with incorrect answers crossed }
 
 Suppose you're invited to a dinner party and you ask the receptionist
 _"Who's here?"_. That person will respond: _"There's Alex, Blake, Caroline,
@@ -363,6 +373,10 @@ work for the receptionist to keep track of what others take notice off.
 So, to make it a little easier you should rephrase the question to: _"What has
 happened after I arrived?"_.
 
+![fig.6 - Guest List](./images/fig-06-guest-list.png "fig. 6 - Guest List")
+
+{ fig.6 - draw a list of records of guests coming in and out with timestamps }
+
 The receptionist would just go through the list where he keeps the names
 of the guests joining and leaving the party, look for the record when you
 arrived and narrate all the events that happened after that.
@@ -379,6 +393,11 @@ Delta encoding is a way to describe differences between two datasets
 information to apply onto our dataset (in form of mutations) to
 get it up-to-date and from what we've just learned, is that it can
 significantly reduce the data redundancy in synchronization processes.
+
+![fig.7 - Deltas](./images/fig-07-deltas.png "fig. 7 - Deltas")
+
+{ fig.7 - draw a 16x16 pixel face with mouth missing, and a smile representing
+a delta }
 
 #### 2.5.1 How to Encode Deltas?
 
@@ -509,10 +528,16 @@ discuss the motivation behind it -- specify the requirements, if you will.
 
 In most cases, developers want to solve the synchronization of shared
 data model between clients and the server with minimum data redundancy.
-This not only lowers the cost of storage and bandwidth on a hosted system,
+This not only lowers the storage and bandwidth costs of a hosted system,
 but also saves CPU time. We already discussed this a little in
 **chapter 2.4.1 -- Absolute Synchronization**, and **chapter 2.5 --
 What are Deltas?**.
+
+![fig.8 - Shared Content](./images/fig-08-shared-content.png "fig. 8 - Shared Content")
+
+{ fig.8 - draw a comparison of a system with 5 users each having his own sheet of paper,
+and a system with 5 users sharing a single sheet of paper; first system
+covered in a cross mark, the other one with a check mark }
 
 One of the important requirements to most folks is also speed. How fast
 we can get a user action delivered to the server -- by _"user action"_, I mean
@@ -521,14 +546,26 @@ deltas off of the clients and onto the server as quick as possible.
 
 Another key thing is having short and fast writes on the server, which lowers
 the response time of a client's request and also reduces the load on
-the system -- all these things describe good concurrency characteristics.
+the system -- all these things aim toward good concurrency characteristics.
 
-Lastly, a very important aspect to system design is scaling. System can
-grow with the number of users it server as does with the amount of the
+![fig.9 - Fast Writes](./images/fig-09-fast-writes.png "fig. 9 - Fast Writes")
+
+{ fig.9 - sketch a path to the database with 5 lanes merging into one, with
+long marks in lanes indicating writes to database; then another diagram with
+shorter marks in the lanes, indicating shorter writes }
+
+Lastly, a very important aspect to system design is scalability. A system can
+grow with the number of users it server, as does with the amount of the
 content generated its by users. So when modeling the data structures
-(schema) we must think about the data distribution and replication, which
-should be easy and painless. That not only provides fail safety -- in case
-of data corruption and outages -- but also load balancing.
+(schema) we must also account for data distribution and replication, which
+should be easy and painless. Having a distributable system not only provides
+fail safety -- in case of data corruption or outages -- but it also makes
+it easy to employ load balancing services.
+
+![fig.10 - Distributed System](./images/fig-10-distributed-system.png "fig. 10 - Distributed System")
+
+{ fig.10 - sketch a database cluster ring with a few services connected
+  to them }
 
 * [x] In our case we're solving the synchronization of shared content between
   clients (mobile and desktop devices, web browers) and servers (nodes).
@@ -543,9 +580,8 @@ of data corruption and outages -- but also load balancing.
 * Event describe mutations (inserts, deletes, updates).
 * Server defined sequence based identifiers.
 
-### 3.3 Content Synchronization
+### 3.3 Event Synchronization
 * Sequence based identifiers allow for lightweight event discovery.
-
 
 ## 4. Reconciling Events to Data Model
 
