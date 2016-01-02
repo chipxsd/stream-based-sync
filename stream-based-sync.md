@@ -565,7 +565,8 @@ it easy to employ load balancing services.
 ![fig.10 - Distributed System](./images/fig-10-distributed-system.png "fig. 10 - Distributed System")
 
 { fig.10 - sketch a database cluster ring with a few services connected
-  to them }
+to them, where one of the services is dead, and a few clients connected
+to services. }
 
 * [x] In our case we're solving the synchronization of shared content between
   clients (mobile and desktop devices, web browers) and servers (nodes).
