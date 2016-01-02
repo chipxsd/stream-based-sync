@@ -527,7 +527,7 @@ discuss the motivation behind it -- specify the requirements, if you will.
 ### 3.1 The Motivation
 
 In most cases, developers want to solve the synchronization of shared
-data model between clients and the server with minimum data redundancy.
+data model between clients and the server with **minimum data redundancy**.
 This not only lowers the storage and bandwidth costs of a hosted system,
 but also saves CPU time. We already discussed this a little in
 **chapter 2.4.1 -- Absolute Synchronization**, and **chapter 2.5 --
@@ -539,7 +539,7 @@ What are Deltas?**.
 and a system with 5 users sharing a single sheet of paper; first system
 covered in a cross mark, the other one with a check mark }
 
-One of the important requirements to most folks is also speed. How fast
+One of the important requirements to most folks is also **speed**. How fast
 we can get a user action delivered to the server -- by _"user action"_, I mean
 a mutation that a user caused to his data model that needs to be distributed
 across other devices. So in other words, get the deltas off of the
@@ -553,7 +553,7 @@ of the devices is sending a short piece of information }
 
 Another key thing is having short and fast writes on the server, which lowers
 the response time of a client's request and also reduces the load on
-the system -- all these things aim toward good concurrency characteristics.
+the system -- all these things aim toward **good concurrency characteristics**.
 
 ![fig.10 - Fast Writes](./images/fig-10-fast-writes.png "fig. 10 - Fast Writes")
 
@@ -561,13 +561,13 @@ the system -- all these things aim toward good concurrency characteristics.
 long marks in lanes indicating writes to database; then another diagram with
 shorter marks in the lanes, indicating shorter writes }
 
-Lastly, a very important aspect to system design is scalability. A system can
-grow with the number of users it serves, as does with the amount of the
-content generated its by users. So when modeling the data structures
-(schema), we must also account for data distribution and replication, which
-should be easy and painless. Having a distributable system not only provides
-fail safety -- in case of outages and data corruption -- but it also makes
-it easy to employ load balancing approaches.
+Lastly, a very important aspect to system design is **scalability**.
+A system can grow with the number of users it serves, as does with
+the amount of the content generated its by users. So when modeling
+the data structures (schema), we must also account for data distribution
+and replication, which should be easy and painless. Having a distributable
+system not only provides fail safety -- in case of outages and data
+corruption -- but it also makes it easy to employ load balancing approaches.
 
 ![fig.11 - Distributed System](./images/fig-10-distributed-system.png "fig. 11 - Distributed System")
 
