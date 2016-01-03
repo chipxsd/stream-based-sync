@@ -12,7 +12,7 @@ working on various data synchronization approaches at the early stage of
 the company and there has been many prototypes built across the platform,
 Android and iOS.
 
-## 2 Data Synchronization
+## 2. Data Synchronization
 
 ### 2.1 What is Data Synchronization?
 
@@ -418,7 +418,6 @@ simple operation types:
 If you remember **chapter 2.3** already demonstrated one of the delta encoding
 approaches suitable for text changes -- it was the example, where we had to
 change a single line of text in a multi-line text file (swift source code).
-
 How do we deal with other kinds of data structures? Let's got over
 a couple:
 
@@ -569,7 +568,7 @@ and replication, which should be easy and painless. Having a distributable
 system not only provides fail safety -- in case of outages and data
 corruption -- but it also makes it easy to employ load balancing approaches.
 
-![fig.11 - Distributed System](./images/fig-10-distributed-system.png "fig. 11 - Distributed System")
+![fig.11 - Distributed System](./images/fig-11-distributed-system.png "fig. 11 - Distributed System")
 
 { fig.11 - sketch a database cluster ring with a few services connected
 to them, where one of the services is dead, and a few clients connected
@@ -581,7 +580,132 @@ to services. }
 * [x] Fast writes on the server (concurrent).
 * [x] Easier data distribution across nodes.
 
-### 3.2 Data Schema
+### 3.2 Stream of Events
+
+Finally, we get to talk about stream based synchronization. Remember how
+we synchronize our _Light Switch_ apps in **chapter 2.1**? Clients have a
+bi-directional TCP connection to the server, and every time a user flips
+the switch, that change -- the mutation on the model -- is sent to the
+server that distributes the change to other clients.
+
+Put differently, clients with an open connection to the server are receiving
+a **stream** of live **events** -- events that describe the changes to the
+model. As long as the clients retain the connection with the server, their
+model will be up-to-date.
+
+![fig.12 - Stream of Events](./images/fig-12-stream-of-events.png "fig. 12 - Stream of Events")
+
+Cold _Light Switch_ clients, those are the clients that have never been
+synced with the server, will get updated as soon as they establish
+a connection and receive their first event. We had already learned, this
+argument is true because our _Light Switch_ data structure is very light.
+It only shares a single primitive value, a scalar, or more specifically,
+a `boolean` state -- is the switch turned _ON_ or _OFF_. Encoded delta
+for a scalar property by it self represents a new value, you don't need
+the previous state of that property where you'd apply the delta onto, to get
+it to a true up-to-date state.
+
+But, imagine a data structure for an app that operates on a little more
+advanced data model, and since we're in the spirit of exercising our theory
+knowledge on examples, let's try it on a different kind of application.
+Let's build a _To-do List_ app!
+
+![fig.13 - To-do List App](./images/fig-13-to-do-list-app.png "fig. 13 - To-do List App")
+
+#### 3.2.1 Example (To-do List App Data-model)
+
+Let's write down use cases and support them with a data model:
+
+1. Application provides a live synchronized list of to-do tasks;
+
+    ```swift
+    public class List: NSObject {
+
+        /// A private collection of tasks maintained by this class.
+        private let tasks: Array<Task> = []
+
+    }
+    ```
+
+2. A task element contains:
+    - A `true` or `false` value indicating it's been marked as
+  complete;
+    - It also contains a `string` description of the task;
+    - And a numeric value annotating a color coded label (0 = black, 1 = red,
+      2 = orange, 3 = yellow, etc.)
+
+    ```swift
+    public class Task: NSObject {
+
+        /// Client generated identifier, used for de-duplication.
+        public private(set) var identifier: NSUUID
+        /// Boolean state indicating the completion of the task.
+        public private(set) var completed: Bool
+        /// Text description of the task.
+        public private(set) var title: String
+        /// Color coded label of the task.
+        public private(set) var label: ColorLabel
+
+        public enum ColorLabel: UInt8 {
+            case None = 0, Red, Orange, Yellow, Green, Turquoise, Blue, Purple, Pink
+        }
+
+    }
+    ```
+
+3. Tasks can be added to the list, edited or removed from the list;
+
+    ```swift
+    public class List: NSObject {
+
+        /// A private collection of tasks maintained by this class.
+        private let tasks: Array<Task> = []
+
+        public func create(title: String, label: Task.ColorLabel)
+        public func update(identifier: NSUUID, completed: Bool?, title: String?, label: Task.ColorLabel?)
+        public func remove(identifier: NSUUID)
+
+    }
+    ```
+
+These three methods should be enough to operate a list of tasks on the client.
+They support all user actions we care for:
+
+- [x] creating and inserting a new task to the end of the list;
+- [x] editing an existing task with new a new completion state, task description,
+  or a new color coded label;
+- [x] deleting an existing task from the list;
+
+So how do we describe these user actions, so that we can transmit them
+over the network? User actions cause mutations to our model (which is
+`class Task` and `class List`), and we need to encode these mutations as
+deltas. I prefer to use the word `Event` to symbolize a user action.
+
+How would an event structure look like in our code? It is pretty close to
+the `Task` model.
+
+```swift
+public class Event: NSObject {
+
+    /// Event type describing a mutation on the model.     
+    public enum Type: UInt8 {
+        case Insert = 0, Update, Delete
+    }
+
+    public private(set) var type: Type
+    public private(set) var identifier: NSUUID?
+    public private(set) var completed: Bool?
+    public private(set) var title: String?
+    public private(set) var label: Int?
+
+}
+```
+
+You might be wondering, why couldn't we just use or extend the existing
+model (`Task`), since they are pretty much symmetrical? It's because
+we'll need a little more data that will help us at the sync process, but
+we'll get to that later.
+
 * Think of streams as linear magnetic tapes with WORM behavior (immutable,
   append only).
 * Tiny bits of information describing different operations -- aka events.
