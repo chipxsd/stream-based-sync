@@ -574,12 +574,6 @@ corruption -- but it also makes it easy to employ load balancing approaches.
 to them, where one of the services is dead, and a few clients connected
 to services. }
 
-* [x] In our case we're solving the synchronization of shared content between
-  clients (mobile and desktop devices, web browers) and servers (nodes).
-* [x] Get deltas off of clients as quick as possible.
-* [x] Fast writes on the server (concurrent).
-* [x] Easier data distribution across nodes.
-
 ### 3.2 Stream of Events
 
 Finally, we get to talk about stream based synchronization. Remember how
