@@ -637,7 +637,7 @@ Let's write down use cases and support them with a data model:
     ```swift
     public class Task: NSObject {
 
-        /// Client generated identifier, used for de-duplication.
+        /// Client generated identifier, used for referencing and de-duplication.
         public private(set) var identifier: NSUUID
         /// Boolean state indicating the completion of the task.
         public private(set) var completed: Bool
@@ -709,8 +709,8 @@ we'll need a little more data that will help us at the sync process, but
 we'll get to that later.
 
 So, if a user creates a new task in the app, app will emit an `Event` over
-the network. _Note: again, I'm going to use JSON to describe objects
-with values_.
+the network. _Note: again, I'm going to use JSON-like notation to describe
+objects with values_.
 
 ![fig.14 - Adding a To-do Item](./images/fig-14-adding-a-to-do-item.png "fig. 14 - Adding a To-do Item")
 
@@ -782,22 +782,51 @@ with [WORM](https://en.wikipedia.org/wiki/Write_once_read_many) behavior.
 It's where we're only allowed to append the events at the end, and we can't
 mutate any of the existing events once they have been written down.
 
-A lot of distributed databases are married to this idea, they are designed
-to work like that. Overwriting existing records hurt the performance of
-a system and is considered an anti-pattern.
-
 ![fig.18 - Persistent Stream](./images/fig-18-persistent-stream.png "fig. 18 - Persistent Stream")
 
 { fig.18 - draw a tape of events hold together by two reels }
 
-* Think of streams as linear magnetic tapes with WORM behavior (immutable,
-  append only).
-* Tiny bits of information describing different operations -- aka events.
-* Event describe mutations (inserts, deletes, updates).
-* Server defined sequence based identifiers.
+A lot of distributed databases are married to this idea, their performance is
+better, when you don't mutate existing records. In the
+[NoSQL](https://en.wikipedia.org/wiki/NoSQL) world, more specifically
+in column-oriented databases, data structure is (naively) considered as
+a table with ever growing rows. Unfortunately our data might not
+be replicated in the same manner across all distributed database nodes and
+clusters -- there's no way to guarantee the same order in them as values
+get written, this is due to the concept known as
+[eventual consistency](https://en.wikipedia.org/wiki/Eventual_consistency).
+
+Asking an eventually consistent database for a record based on an offset
+inside its row might yield a different answer, depending which database node
+you end up talking to. That's why you ask for the records based on their
+values, and you can decide which values you want indexed as records get
+written. But still, eventually consistent database cluster cannot guarantee
+it will yield the same or any result when asking it for a record based
+on certain key, since the record hasn't been written nor indexed yet.
+
+In our _To-do List_ app example, we gave our `Task` objects their
+own `identifiers`, client generated
+[UUIDs](https://en.wikipedia.org/wiki/Universally_unique_identifier).
+This is how `Events` can reference `Tasks` when there's a mutation needed
+to be applied. These identifiers could also be useful to fetch all `Events`
+representing the final state of a `Task` from the database, if database
+kept an index of these identifier values. But as we figured out,
+in certain edge cases (due to eventual consistency), a replicated database
+cluster might return a different result set from another.
+
+So, how does a client know for sure it's got all the events? If you remember,
+one way is to always copy the whole dataset (absolute sync, **chapter 2.4.1**).
+Or we could implement some sort of integrity check, that would calculate
+a hash based on Events' values. But still, that would only indicate there's
+a mismatch. Sure, we could order and section our dataset based on a key,
+and hash each section individually, but let's be honest, we'd still be
+calculating and transferring a lot more data, than it's truly necessary.
+
+### 3.5 Event Discovery
+
+* Sequence based identifiers allow for lightweight event discovery.
 
 ### 3.5 Event Synchronization
-* Sequence based identifiers allow for lightweight event discovery.
 
 ## 4. Reconciling Events to Data Model
 
