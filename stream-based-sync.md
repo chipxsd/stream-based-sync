@@ -728,7 +728,7 @@ icon next to an item with a text spelling "Buy milk" }
 ```
 
 If a user marks the task as completed, app will generate and emit an
-event looking like:
+event looking like so:
 
 ![fig.15 - Marking an Item as Completed](./images/fig-15-marking-an-item-as-completed.png "fig. 15 - Marking an Item As Completed")
 
@@ -739,27 +739,29 @@ checkmark next to the item }
 { // event structure
   type: 1,                                              // 1 = Update
   identifier: "cb55ceec-b9ae-4bd9-8783-7dbf3e9cb2cd",   // task's identifier from before
-  completed: true,                                      // new value
+  completed: true                                       // new value
 }
 ```
 
 ### 3.3 Let the Streaming Begin
 
-We now have an idea, how events transmitted on a stream look like. These
-events are received by all active clients, and as long as the clients
-are connected to the server, they are going to have a consistent dataset.
+We now have an idea, how events transmitted on a stream look like. Client
+generating the events sends them to the server, then server's responsibility
+is to broadcast those exact changes to other peers. These events are
+received by all active clients, and as long as the clients are
+connected to the server, they are going to have a consistent dataset.
 
 ![fig.16 - Streaming To-do List Mutations](./images/fig-16-streaming-to-do-list-mutations.png "fig. 16 - Streaming To-do List Mutations")
 
 { fig.16 - a tape of to-do item mutations with a phone having a smily face
 on the screen and a few checked items below }
 
-Cold clients however are out of luck. If a client comes online a few moments
-later, it might've missed events which are important to reconstruct the
-dataset. What good is an `Event` telling that a task was completed to a
-client that never saw the task to begin with?
+However, if a client comes online a few moments later, it might've missed
+events which are important to reconstruct the dataset. What good is
+an `Event` telling that a task was completed to a client that never saw
+the original task to begin with?
 
-![fig.17 - Missing Events](./images/fig-17-missing-events.png "fig. 17 - Missing events")
+![fig.17 - Missing Events](./images/fig-17-missing-events.png "fig. 17 - Missing Events")
 
 { fig.17 - a tape of to-do item mutations with a phone having a puzzled
 face 🤔 and a checkmark next to "?????????????" }
@@ -767,6 +769,26 @@ face 🤔 and a checkmark next to "?????????????" }
 Such client is considered _"out-of-sync"_.
 
 ### 3.4 Persistent Stream
+
+Don't worry, having clients being wedged in an _out-of-sync_ state is
+recoverable. One way, of bringing an out-of-sync client back to a consistent
+state would be to replay all the events, that have happened while the client
+was away. Which means that the server's responsibility besides broadcasting
+the events should also be recording all the events that come in. In other
+words, we need to persist the _stream of events_.
+
+We can think of a persistent stream as a linear magnetic tape, a storage
+with [WORM](https://en.wikipedia.org/wiki/Write_once_read_many) behavior.
+It's where we're only allowed to append the events at the end, and we can't
+mutate any of the existing events once they have been written down.
+
+A lot of distributed databases are married to this idea, they are designed
+to work like that. Overwriting existing records hurt the performance of
+a system and is considered an anti-pattern.
+
+![fig.18 - Persistent Stream](./images/fig-18-persistent-stream.png "fig. 18 - Persistent Stream")
+
+{ fig.18 - draw a tape of events hold together by two reels }
 
 * Think of streams as linear magnetic tapes with WORM behavior (immutable,
   append only).
@@ -780,6 +802,31 @@ Such client is considered _"out-of-sync"_.
 ## 4. Reconciling Events to Data Model
 
 ### 4.1 Outbound Reconciliation
+
+{ chapter in progress }
+
+Who vends these events is also a good question. The best place to put
+the `Event` creation logic is where we take user actions, in the heart of
+our application's logic our `List` class.
+
+```swift
+public class List: NSObject {
+
+    public func create(title: String, label: Task.ColorLabel) -> Sync.Event {
+        return Sync.Event(insert: NSUUID(), completed: false, title: title, label: label.rawValue)
+    }
+
+    public func update(identifier: NSUUID, completed: Bool?, title: String?, label: Task.ColorLabel?) -> Sync.Event {
+        return Sync.Event(update: NSUUID(), completed: completed, title: title, label: label != nil ? label!.rawValue : nil as UInt8?)
+    }
+
+    public func remove(identifier: NSUUID) -> Sync.Event {
+        return Sync.Event(delete: identifier)
+    }
+
+}
+```
+
 * Turning model mutations into events.
 * Maintaining short edit distances.
 
