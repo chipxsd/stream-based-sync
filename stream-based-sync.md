@@ -440,11 +440,11 @@ delta as:
 ```javascript
 [
   {
-    operation: "update",
+    type: "update",
     offset: 0x03,
     values: [ 0x38, 0x39, 0x61 ]
   }, {
-    operation: "insert",
+    type: "insert",
     offset: 0x50,
     values: [ 0xCE, 0xE1, 0x50, 0x96, 0x89, 0x48, 0x9D, 0x02, 0x43, 0x62,
       0x8D, 0x98, 0x28, 0x00, 0x00, 0x3B ]
@@ -476,7 +476,7 @@ character at the right location, which gives us the same result:
 
 ```javascript
 {
-  operation: "insert",
+  type: "insert",
   offset: 2781,
   values: [ "?" ]
 }
@@ -501,7 +501,7 @@ to remove _"Blake"_ from its set.
 
 ```javascript
 {
-  operation: "delete",
+  type: "delete",
   guest: [ "Blake" ]
 }
 ```
@@ -589,6 +589,9 @@ model will be up-to-date.
 
 ![fig.12 - Stream of Events](./images/fig-12-stream-of-events.png "fig. 12 - Stream of Events")
 
+{ fig.12 - a tape of events having "ON" and "OFF" values and a phone at
+the end with a happy face 😁 on the screen and a lit lightbulb }
+
 Cold _Light Switch_ clients, those are the clients that have never been
 synced with the server, will get updated as soon as they establish
 a connection and receive their first event. We had already learned, this
@@ -605,6 +608,9 @@ knowledge on examples, let's try it on a different kind of application.
 Let's build a _To-do List_ app!
 
 ![fig.13 - To-do List App](./images/fig-13-to-do-list-app.png "fig. 13 - To-do List App")
+
+{ fig.13 - an isometric phone in someone's hand with a few checklist items
+on the screen; some checked, some left un-checked }
 
 #### 3.2.1 Example (To-do List App Data-model)
 
@@ -670,10 +676,12 @@ They support all user actions we care for:
   or a new color coded label;
 - [x] deleting an existing task from the list;
 
+#### 3.2.2 Example (To-do List Sync Data-model)
+
 So how do we describe these user actions, so that we can transmit them
-over the network? User actions cause mutations to our model (which is
-`class Task` and `class List`), and we need to encode these mutations as
-deltas. I prefer to use the word `Event` to symbolize a user action.
+over the network? User actions cause mutations to our model (which are
+`Task` and `List`), and we need to encode these mutations as
+deltas. Well, I prefer to use the word `Event` to symbolize an action.
 
 How would an event structure look like in our code? It is pretty close to
 the `Task` model.
@@ -700,13 +708,73 @@ model (`Task`), since they are pretty much symmetrical? It's because
 we'll need a little more data that will help us at the sync process, but
 we'll get to that later.
 
+So, if a user creates a new task in the app, app will emit an `Event` over
+the network. _Note: again, I'm going to use JSON to describe objects
+with values_.
+
+![fig.14 - Adding a To-do Item](./images/fig-14-adding-a-to-do-item.png "fig. 14 - Adding a To-do Item")
+
+{ fig.14 - an isometric phone in someone's hand and a thumb tapping on the (+)
+icon next to an item with a text spelling "Buy milk" }
+
+```javascript
+{ // event structure
+  type: 0,                                              // 0 = Insert
+  identifier: "cb55ceec-b9ae-4bd9-8783-7dbf3e9cb2cd",   // client generated id
+  completed: false,                                     // an incomplete task
+  title: "Buy milk",                                    // task description
+  label: 0                                              // task without a label
+}
+```
+
+If a user marks the task as completed, app will generate and emit an
+event looking like:
+
+![fig.15 - Marking an Item as Completed](./images/fig-15-marking-an-item-as-completed.png "fig. 15 - Marking an Item As Completed")
+
+{ fig.14 - an isometric phone in someone's hand and a thumb tapping on the
+checkmark next to the item }
+
+```javascript
+{ // event structure
+  type: 1,                                              // 1 = Update
+  identifier: "cb55ceec-b9ae-4bd9-8783-7dbf3e9cb2cd",   // task's identifier from before
+  completed: true,                                      // new value
+}
+```
+
+### 3.3 Let the Streaming Begin
+
+We now have an idea, how events transmitted on a stream look like. These
+events are received by all active clients, and as long as the clients
+are connected to the server, they are going to have a consistent dataset.
+
+![fig.16 - Streaming To-do List Mutations](./images/fig-16-streaming-to-do-list-mutations.png "fig. 16 - Streaming To-do List Mutations")
+
+{ fig.16 - a tape of to-do item mutations with a phone having a smily face
+on the screen and a few checked items below }
+
+Cold clients however are out of luck. If a client comes online a few moments
+later, it might've missed events which are important to reconstruct the
+dataset. What good is an `Event` telling that a task was completed to a
+client that never saw the task to begin with?
+
+![fig.17 - Missing Events](./images/fig-17-missing-events.png "fig. 17 - Missing events")
+
+{ fig.17 - a tape of to-do item mutations with a phone having a puzzled
+face 🤔 and a checkmark next to "?????????????" }
+
+Such client is considered _"out-of-sync"_.
+
+### 3.4 Persistent Stream
+
 * Think of streams as linear magnetic tapes with WORM behavior (immutable,
   append only).
 * Tiny bits of information describing different operations -- aka events.
 * Event describe mutations (inserts, deletes, updates).
 * Server defined sequence based identifiers.
 
-### 3.3 Event Synchronization
+### 3.5 Event Synchronization
 * Sequence based identifiers allow for lightweight event discovery.
 
 ## 4. Reconciling Events to Data Model
