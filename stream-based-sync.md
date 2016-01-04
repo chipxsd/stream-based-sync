@@ -628,8 +628,7 @@ Let's write down use cases and support them with a data model:
     ```
 
 2. A task element contains:
-    - A `true` or `false` value indicating it's been marked as
-  complete;
+    - A `true` or `false` value indicating it's been marked as complete;
     - It also contains a `string` description of the task;
     - And a numeric value annotating a color coded label (0 = black, 1 = red,
       2 = orange, 3 = yellow, etc.)
