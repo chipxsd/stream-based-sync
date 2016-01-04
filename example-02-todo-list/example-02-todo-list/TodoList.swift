@@ -20,9 +20,11 @@ public struct Todo {
          
          - parameter title: Task title.
          - parameter label: Task color coded label.
+         
+         - returns: An `Event` describing the creation of a new object.
          */
-        public func create(title: String, label: Task.ColorLabel) {
-
+        public func create(title: String, label: Task.ColorLabel) -> Sync.Event {
+            return Sync.Event(insert: NSUUID(), completed: false, title: title, label: label.rawValue)
         }
         
         /**
@@ -38,9 +40,11 @@ public struct Todo {
                                  new given title.
          - parameter label:      If set, the task will be updated with the
                                  new color label.
+
+         - returns: An `Event` describing the mutation of an object.
          */
-        public func update(identifier: NSUUID, completed: Bool?, title: String?, label: Task.ColorLabel?) {
-            
+        public func update(identifier: NSUUID, completed: Bool?, title: String?, label: Task.ColorLabel?) -> Sync.Event {
+            return Sync.Event(update: NSUUID(), completed: completed, title: title, label: label != nil ? label!.rawValue : nil as UInt8?)
         }
 
         /**
@@ -48,16 +52,18 @@ public struct Todo {
          
          - parameter identifier: Task indentifier used to locate and delete
                                  the task from the list.
+         
+         - returns: An `Event` describing the deletion of an object.
          */
-        public func remove(identifier: NSUUID) {
-            
+        public func remove(identifier: NSUUID) -> Sync.Event {
+            return Sync.Event(delete: identifier)
         }
         
     }
 
     public class Task: NSObject {
         
-        /// Client generated identifier, used for de-duplication.
+        /// Client generated identifier, used for referencing and de-duplication.
         public private(set) var identifier: NSUUID
         
         /// Boolean state indicating the completion of the task.

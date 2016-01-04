@@ -519,7 +519,7 @@ names:
 
 There are plenty of approaches to get our data model synchronized with the
 server, we'll be taking a closer look at the synchronization approach that
-leverages persistent streams. Now, before we dwell on what stream
+takes the advantage of persistent streams. Now, before we dwell on what stream
 based synchronization is and how we can leverage it, I'd like to
 discuss the motivation behind it -- specify the requirements, if you will.
 
@@ -660,6 +660,7 @@ Let's write down use cases and support them with a data model:
         /// A private collection of tasks maintained by this class.
         private let tasks: Array<Task> = []
 
+        /// Method for manipulating the to-do list.
         public func create(title: String, label: Task.ColorLabel)
         public func update(identifier: NSUUID, completed: Bool?, title: String?, label: Task.ColorLabel?)
         public func remove(identifier: NSUUID)
@@ -862,12 +863,26 @@ auto incremented record sequencing.
 
 For a recently online client to figure out which events it might've missed,
 a basic inquiry of "what's the last sequence value written to the stream?"
-is enough. This way, a client can run through a list of `seq` values from
-the events it's got on itself, and diff it against a set of integers going
-from zero `0` to whatever the number of events server told us it has. Now
-client knows exactly which events it needs to pull from the server -- based
-on a _diffed_ set of `seq` -- in order to get to a consistent state with
-other peers.
+is enough. With the server response client takes the number and stores it.
+The best place to store it would be in an object, where we'd keep all
+information associated with a stream. For now, we're only interested in
+what's the last `seq` value written to the stream:
+
+```swift
+public class Stream: NSObject {
+
+    /// Last known sequence value received from the server.
+    public private var latestSeq: Int
+
+}
+```
+
+With that information, a client can run through a list of `seq` values from
+the events it's got on itself from before, and diff it against a set of
+integers going from zero `0` to whatever the number of events server
+told us it has. Now client knows exactly which events it needs to pull
+from the server -- based on a _diffed_ set of `seq` -- in order to
+get to a consistent state with other peers.
 
 ![fig.19 - Sequenced Events](./images/fig-19-sequenced-events.png "fig. 19 - Sequenced Events")
 
@@ -888,6 +903,7 @@ I'll be reference them.
     // Sequence values of all the Events written to the stream
     // and received by all the clients.
     [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]
+    latestSeq = 9
     ```
 
 2.  One of the clients went offline (due to either poor connectivity, or
@@ -899,6 +915,7 @@ I'll be reference them.
     ```javascript
     // Sequence values of all the Events written to the stream.
     [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 ]
+    latestSeq = 14
     ```
 
 4.  The offline client (from 2. step) comes back online, where `5` more events
@@ -907,6 +924,7 @@ I'll be reference them.
     ```javascript
     // Sequence values of all the Events written to the stream.
     [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 ]
+    latestSeq = 19
     ```
 
 5.  The same client, that's been offline for a while has got a few events
@@ -915,6 +933,7 @@ I'll be reference them.
     ```javascript
     // `seq` values from the recently connected client's perspective.
     [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, __, __, __, __, __, 15, 16, 17, 18, 19 ]
+    latestSeq = 19
     ```
 
     We described such client as being in an _out-of-sync_ state. It's got a few
@@ -925,10 +944,19 @@ I'll be reference them.
     in a following set of integers:
 
     ```swift
-    let seqsOfEvents: Set = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16, 17, 18, 19 ]
-    let seqsOfAllEvents: Set = [ 0 ... 19 ]
-    let seqsOfMissingEvents: Set = seqOfAllEvents.subtract(seqOfEvents) -> [ 10, 11, 12, 13, 14 ]
+    // [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16, 17, 18, 19 ]
+    let seqsOfEvents: Set = events.map({ $0.seq })
+
+    // [ 0, 1, 2, 3 ... 19 ]
+    let seqsOfAllEvents: Set = [Int](0...19)
+
+    // [ 10, 11, 12, 13, 14 ]
+    let seqsOfMissingEvents: Set = seqOfAllEvents.subtract(seqOfEvents)
     ```
+
+    Note: _working with [NSIndexSet](https://developer.apple.com/library/mac/documentation/Cocoa/Reference/Foundation/Classes/NSIndexSet_Class/)
+    would be far more efficient, but I wanted to use standard sets for the
+    sake of simplicity._
 
 7. With the set of `seq` annotating the missing events, client asks the
    server to hand out these events, which brings the client back to a
@@ -936,13 +964,17 @@ I'll be reference them.
 
 ## 4. Reconciling Events to Data Model
 
+By now, we've answered the question on how to design our application data
+model (`List`, `Tasks`), how to design the synchronization model
+(`Stream` and `Events`), we also know how to discover new events in case
+we missed some (based on `Stream.latestSeq` and `Event.map({ $0.seq })`).
+
 ### 4.1 Outbound Reconciliation
 
-{ chapter in progress }
-
-Who vends these events is also a good question. The best place to put
-the `Event` creation logic is where we take user actions, in the heart of
-our application's logic our `List` class.
+But we never asked which part of the client side code is actually responsible
+for vending these `Events`. The best place to put the `Event` creation logic
+is where we take user actions, in the heart of our application's logic --
+our `List` class.
 
 ```swift
 public class List: NSObject {
@@ -962,8 +994,10 @@ public class List: NSObject {
 }
 ```
 
-* Turning model mutations into events.
-* Maintaining short edit distances.
+Todo:
+
+* [x] Turning model mutations into events.
+* [ ] Maintaining short edit distances.
 
 ### 4.2 Inbound Reconciliation
 * Taking mutation data from events and applying it on the model.

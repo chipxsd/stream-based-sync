@@ -32,18 +32,18 @@ public struct Sync {
         public private(set) var identifier: NSUUID?
         public private(set) var completed: Bool?
         public private(set) var title: String?
-        public private(set) var label: Int?
+        public private(set) var label: UInt8?
         
-        init(insert identifier: NSUUID, completed: Bool, title: String, label: Int) {
-            self.type = Type.Insert;
+        init(insert identifier: NSUUID, completed: Bool, title: String, label: UInt8) {
+            self.type = Type.Insert
             self.identifier = identifier
             self.completed = completed
             self.title = title
             self.label = label
         }
         
-        init(update identifier: NSUUID, completed: Bool?, title: String?, label: Int?) {
-            self.type = Type.Update;
+        init(update identifier: NSUUID, completed: Bool?, title: String?, label: UInt8?) {
+            self.type = Type.Update
             self.identifier = identifier
             self.completed = completed
             self.title = title
@@ -51,7 +51,7 @@ public struct Sync {
         }
         
         init(delete identifier: NSUUID) {
-            self.type = Type.Delete;
+            self.type = Type.Delete
             self.identifier = identifier
         }
         
