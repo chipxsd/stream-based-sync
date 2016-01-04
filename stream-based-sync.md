@@ -798,17 +798,18 @@ get written, this is due to the concept known as
 
 Asking an eventually consistent database for a record based on an offset
 inside its row might yield a different answer, depending which database node
-you end up talking to. That's why you ask for the records based on their
-values, and you can decide which values you want indexed as records get
-written. But still, eventually consistent database cluster cannot guarantee
-it will yield the same or any result when asking it for a record based
-on certain key, since the record hasn't been written nor indexed yet.
+or cluster you end up talking to. That's why you ask for the records based
+on their values, and you can decide which values you want indexed as
+records get written. But still, eventually consistent database cluster
+cannot guarantee it will yield the same or any result when asking it
+for a record based on certain key, since the record might've not been written
+nor indexed yet.
 
 In our _To-do List_ app example, we gave our `Task` objects their
 own `identifiers`, client generated
 [UUIDs](https://en.wikipedia.org/wiki/Universally_unique_identifier).
-This is how `Events` can reference `Tasks` when there's a mutation needed
-to be applied. These identifiers could also be useful to fetch all `Events`
+This let's us reference `Tasks` in `Events` when applying mutations onto
+to model. These identifiers could also be useful to fetch all `Events`
 representing the final state of a `Task` from the database, if database
 kept an index of these identifier values. But as we figured out,
 in certain edge cases (due to eventual consistency), a replicated database
@@ -818,15 +819,54 @@ So, how does a client know for sure it's got all the events? If you remember,
 one way is to always copy the whole dataset (absolute sync, **chapter 2.4.1**).
 Or we could implement some sort of integrity check, that would calculate
 a hash based on Events' values. But still, that would only indicate there's
-a mismatch. Sure, we could order and section our dataset based on a key,
-and hash each section individually, but let's be honest, we'd still be
-calculating and transferring a lot more data, than it's truly necessary.
+a mismatch between our datasets, we'd still need to copy the whole set.
+Sure, we could order and section our dataset based on a key, and hash each
+section individually, but let's be honest, we'd still be calculating and
+transferring a lot more data, than it's truly necessary.
 
 ### 3.5 Event Discovery
 
-* Sequence based identifiers allow for lightweight event discovery.
+This is where sequencing comes in handy. Giving an `Event` a unique
+server-generated cardinal value (`f(x) = x`), we could leverage it as a
+lightweight index to our events. In math, this is also called a countable
+ordered index set, where the value of n-th element equals index n.
+The maximum value which is also the value of the last element in such
+index set denotes its size (the count of elements).
 
-### 3.5 Event Synchronization
+Let's extend our `Event` model with a new property called `seq`:
+
+```swift
+public class Event: NSObject {
+
+    /// Event type describing a mutation on the model.     
+    public enum Type: UInt8 {
+        case Insert = 0, Update, Delete
+    }
+
+    public private(set) var seq: Int? // server generated index value
+    public private(set) var type: Type
+    public private(set) var identifier: NSUUID?
+    public private(set) var completed: Bool?
+    public private(set) var title: String?
+    public private(set) var label: Int?
+
+}
+```
+
+For a recently online client to figure out which events it might've missed,
+a basic inquiry of "what's the last sequence value written to the stream"
+is enough.
+
+![fig.19 - Sequenced Events](./images/fig-19-sequenced-events.png "fig. 19 - Sequenced Events")
+
+{ fig.19 - draw two streams (tapes), a server stream and a client stream;
+server stream has all events in the stream, whereas client has a hole
+for the period when it was offline }
+
+Todo:
+
+* [x] Sequence based identifiers allow for lightweight event discovery.
+* [ ] Explain event discoverability on example.
 
 ## 4. Reconciling Events to Data Model
 
