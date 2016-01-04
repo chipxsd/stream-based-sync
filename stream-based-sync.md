@@ -827,11 +827,11 @@ transferring a lot more data, than it's truly necessary.
 ### 3.5 Event Discovery
 
 This is where sequencing comes in handy. Giving an `Event` a unique
-server-generated cardinal value (`f(x) = x`), we could leverage it as a
+server-generated cardinal value, we could leverage it as a
 lightweight index to our events. In math, this is also called a countable
-ordered index set, where the value of n-th element equals index n.
-The maximum value which is also the value of the last element in such
-index set denotes its size (the count of elements).
+ordered index set, where the value of n-th element is equal to its zero
+based index n. The maximum value which is also the value of the last
+element in such index set denotes its size (the count of elements).
 
 Let's extend our `Event` model with a new property called `seq`:
 
@@ -853,9 +853,22 @@ public class Event: NSObject {
 }
 ```
 
+As `Events` get generated and transmitted by the clients, server takes them
+and assigns them a sequence value. With every event written to storage,
+sequence value is incremented. First event written to the stream has a
+sequence value of `seq: 0`, second one get the value of `seq: 1`, etc. You
+get the idea how incremented integers work. And yes, the work of assigning
+sequence values can be put off on the database, if the database supports
+auto incremented record sequencing.
+
 For a recently online client to figure out which events it might've missed,
-a basic inquiry of "what's the last sequence value written to the stream"
-is enough.
+a basic inquiry of "what's the last sequence value written to the stream?"
+is enough. This way, a client can run through a list of `seq` values from
+the events it's got on itself, and diff it against a set of integers going
+from zero `0` to whatever the number of events server told us it has. Now
+client knows exactly which events it needs to pull from the server -- based
+on a _diffed_ set of `seq` -- in order to get to a consistent state with
+other peers.
 
 ![fig.19 - Sequenced Events](./images/fig-19-sequenced-events.png "fig. 19 - Sequenced Events")
 
@@ -863,10 +876,64 @@ is enough.
 server stream has all events in the stream, whereas client has a hole
 for the period when it was offline }
 
-Todo:
+What better way to test this theory, than through an example, huh? Say we've
+got a few clients connected to the server, and server's stream is
+completely empty. I'm going to numerate the steps in this example, because
+I'll be reference them.
 
-* [x] Sequence based identifiers allow for lightweight event discovery.
-* [ ] Explain event discoverability on example.
+1.  Through the use of the _To-do List_ app, clients have generated `10` events.
+    All these connected clients were fortunate to receive the `Events` as
+    they got published to the stream in real-time.
+
+    ```javascript
+    // Sequence values of all the Events written to the stream
+    // and received by all the clients.
+    [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ]
+    ```
+
+2.  One of the clients went offline (due to either poor connectivity, or
+    because, the user decided to put the app away).
+
+3.  Meanwhile, other clients have generated and published `5` more events to
+    the stream.
+
+    ```javascript
+    // Sequence values of all the Events written to the stream.
+    [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 ]
+    ```
+
+4.  The offline client (from 2. step) comes back online, where `5` more events
+    get published. This now makes it a total of `20` events.
+
+    ```javascript
+    // Sequence values of all the Events written to the stream.
+    [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 ]
+    ```
+
+5.  The same client, that's been offline for a while has got a few events
+    missing:
+
+    ```javascript
+    // `seq` values from the recently connected client's perspective.
+    [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, __, __, __, __, __, 15, 16, 17, 18, 19 ]
+    ```
+
+    We described such client as being in an _out-of-sync_ state. It's got a few
+    `Events` that don't mean anything without their predecessors.
+
+6.  Client creates a set of `seq` values from all the events it has and
+    subtracts it with a set of integers ranging from `0` to `19`. Which results
+    in a following set of integers:
+
+    ```swift
+    let seqsOfEvents: Set = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16, 17, 18, 19 ]
+    let seqsOfAllEvents: Set = [ 0 ... 19 ]
+    let seqsOfMissingEvents: Set = seqOfAllEvents.subtract(seqOfEvents) -> [ 10, 11, 12, 13, 14 ]
+    ```
+
+7. With the set of `seq` annotating the missing events, client asks the
+   server to hand out these events, which brings the client back to a
+   consistent state.
 
 ## 4. Reconciling Events to Data Model
 
