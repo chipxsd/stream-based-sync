@@ -597,9 +597,9 @@ a **stream** of live **events** -- events that describe the changes to the
 model. As long as the clients retain the connection with the server, their
 model will be up-to-date.
 
-![fig.12 - Stream of Events](./images/fig-12-stream-of-events.png "fig. 12 - Stream of Events")
+![fig.13 - Stream of Events](./images/fig-13-stream-of-events.png "fig. 13 - Stream of Events")
 
-{ fig.12 - a tape of events having "ON" and "OFF" values and a phone at
+{ fig.13 - a tape of events having "ON" and "OFF" values and a phone at
 the end with a happy face 😁 on the screen and a lit lightbulb }
 
 Cold _Light Switch_ clients, those are the clients that have never been
@@ -617,9 +617,9 @@ advanced data model, and since we're in the spirit of exercising our theory
 knowledge on examples, let's try it on a different kind of application.
 Let's build a _To-do List_ app!
 
-![fig.13 - To-do List App](./images/fig-13-to-do-list-app.png "fig. 13 - To-do List App")
+![fig.14 - To-do List App](./images/fig-14-to-do-list-app.png "fig. 14 - To-do List App")
 
-{ fig.13 - an isometric phone in someone's hand with a few checklist items
+{ fig.14 - an isometric phone in someone's hand with a few checklist items
 on the screen; some checked, some left un-checked }
 
 #### 3.2.1 Example (To-do List App Data-model)
@@ -725,9 +725,9 @@ So, if a user creates a new task in the app, app will emit an `Event` over
 the network. _Note: again, I'm going to use JSON-like notation to describe
 objects with values_.
 
-![fig.14 - Adding a To-do Item](./images/fig-14-adding-a-to-do-item.png "fig. 14 - Adding a To-do Item")
+![fig.15 - Adding a To-do Item](./images/fig-15-adding-a-to-do-item.png "fig. 15 - Adding a To-do Item")
 
-{ fig.14 - an isometric phone in someone's hand and a thumb tapping on the (+)
+{ fig.15 - an isometric phone in someone's hand and a thumb tapping on the (+)
 icon next to an item with a text spelling "Buy milk" }
 
 ```javascript
@@ -743,9 +743,9 @@ icon next to an item with a text spelling "Buy milk" }
 If a user marks the task as completed, app will generate and emit an
 event looking like so:
 
-![fig.15 - Marking an Item as Completed](./images/fig-15-marking-an-item-as-completed.png "fig. 15 - Marking an Item As Completed")
+![fig.16 - Marking an Item as Completed](./images/fig-16-marking-an-item-as-completed.png "fig. 16 - Marking an Item As Completed")
 
-{ fig.14 - an isometric phone in someone's hand and a thumb tapping on the
+{ fig.16 - an isometric phone in someone's hand and a thumb tapping on the
 checkmark next to the item }
 
 ```javascript
@@ -764,9 +764,9 @@ is to broadcast those exact changes to other peers. These events are
 received by all active clients, and as long as the clients are
 connected to the server, they are going to have a consistent dataset.
 
-![fig.16 - Streaming To-do List Mutations](./images/fig-16-streaming-to-do-list-mutations.png "fig. 16 - Streaming To-do List Mutations")
+![fig.17 - Streaming To-do List Mutations](./images/fig-17-streaming-to-do-list-mutations.png "fig. 17 - Streaming To-do List Mutations")
 
-{ fig.16 - a tape of to-do item mutations with a phone having a smily face
+{ fig.17 - a tape of to-do item mutations with a phone having a smily face
 on the screen and a few checked items below }
 
 However, if a client comes online a few moments later, it might've missed
@@ -774,9 +774,9 @@ events which are important to reconstruct the dataset. What good is
 an `Event` telling that a task was completed to a client that never saw
 the original task to begin with?
 
-![fig.17 - Missing Events](./images/fig-17-missing-events.png "fig. 17 - Missing Events")
+![fig.18 - Missing Events](./images/fig-18-missing-events.png "fig. 18 - Missing Events")
 
-{ fig.17 - a tape of to-do item mutations with a phone having a puzzled
+{ fig.18 - a tape of to-do item mutations with a phone having a puzzled
 face 🤔 and a checkmark next to "?????????????" }
 
 Such client is considered _"out-of-sync"_.
@@ -795,9 +795,9 @@ with [WORM](https://en.wikipedia.org/wiki/Write_once_read_many) behavior.
 It's where we're only allowed to append the events at the end, and we can't
 mutate any of the existing events once they have been written down.
 
-![fig.18 - Persistent Stream](./images/fig-18-persistent-stream.png "fig. 18 - Persistent Stream")
+![fig.19 - Persistent Stream](./images/fig-19-persistent-stream.png "fig. 19 - Persistent Stream")
 
-{ fig.18 - draw a tape of events hold together by two reels }
+{ fig.19 - draw a tape of events hold together by two reels }
 
 A lot of distributed databases are married to this idea, their performance is
 better, when you don't mutate existing records. In the
@@ -907,9 +907,9 @@ told us it has. Now client knows exactly which events it needs to pull
 from the server (based on a _diffed_ set of `seq`) in order to
 get to a consistent state with other peers.
 
-![fig.19 - Sequenced Events](./images/fig-19-sequenced-events.png "fig. 19 - Sequenced Events")
+![fig.20 - Sequenced Events](./images/fig-20-sequenced-events.png "fig. 20 - Sequenced Events")
 
-{ fig.19 - draw two streams (tapes), a server stream and a client stream;
+{ fig.20 - draw two streams (tapes), a server stream and a client stream;
 server stream has all events in the stream, whereas client has a hole
 for the period when it was offline }
 
@@ -1005,9 +1005,9 @@ If we have to pick a name for this process of turning model mutations into
 synchronize-able (syncable for short) `Events`, let's call it
 _"Outbund Reconciliation"_.
 
-![fig.20 - Outbound Reconciliation](./images/fig-20-outbound-reconciliation.png "fig. 20 - Outbound Reconciliation")
+![fig.21 - Outbound Reconciliation](./images/fig-21-outbound-reconciliation.png "fig. 21 - Outbound Reconciliation")
 
-{ fig.20 - a list of todo items on the left with an arrow pointing to
+{ fig.21 - a list of todo items on the left with an arrow pointing to
 events on the center and another arrow pointing at the stream on the right}
 
 The best place to put the `Event` creation logic is where we take user
@@ -1117,9 +1117,9 @@ What do other clients do with `Events`, once they receive them from the server?
 These `Events` have to be turned back into object. It's a process we can
 name _"Inbound Reconciliation"_.
 
-![fig.21 - Inbound Reconciliation](./images/fig-21-inbound-reconciliation.png "fig. 21 - Inbound Reconciliation")
+![fig.22 - Inbound Reconciliation](./images/fig-22-inbound-reconciliation.png "fig. 22 - Inbound Reconciliation")
 
-{ fig.21 - same as figure 20. but mirrored }
+{ fig.22 - same as figure 20. but mirrored }
 
 As with the _Outbound Reconciliation_ logic, described in **chapter 4.1**,
 _Inbound Reconciliation_ logic can be a resident of the to-do `List` class.
@@ -1223,7 +1223,7 @@ Todo:
 * [ ] Fast because of the low bandwidth and CPU usage cost when getting the data
       (deltas) delivered in real-time.
 * [ ] Easy to implement load balancing and replication on server.
-
+* [ ] Offline support
 
 ## 7. Shortcomings
 
