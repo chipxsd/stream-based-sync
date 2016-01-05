@@ -8,10 +8,55 @@
 
 import Foundation
 
-public struct Sync {
+public protocol ModelReconciler: class {
+    /**
+     Applies events from the Array onto the model in the order they're
+     stored in the array.
+     
+     - parameter events: An array of `Event` instances.
+     
+     - returns: `true` in case the event was successfully applied onto the model
+                otherwise `false`.
+     */
+    func apply(events: Array<Sync.Event>) -> Bool
+}
 
-    public class Event: NSObject {
+public protocol OutboundEventReceiver: class {
+    /**
+     Notifies the receiver that a new event has been created by the model
+     reconciler.
+     
+     - parameter reconciler: The instance of the model reconciler making
+                             performing the invocation of this method.
+     - parameter event:      The `Event` instance created.
+     */
+    func reconciler(reconciler: ModelReconciler, didCreateEvent event: Sync.Event)
+}
+
+public struct Sync {
+    public class Stream: NSObject, OutboundEventReceiver {
+        /// Last known sequence value received from the server.
+        public private(set) var latestSeq: Int = 0
         
+        /// Collection of all events known to client (sent and received).
+        public private(set) var publishedEvents: Array<Event> = []
+        
+        /// Collection of all queued events meant for publication.
+        /// This collection is drained as events get published.
+        public private(set) var queuedEvents: Array<Event> = []
+        
+        /// A method that talks to the transport layer and in
+        /// in charge of publishing the `Events` onto the network stream.
+        public func publish(event: Event) {
+            
+        }
+        
+        public func reconciler(reconciler: ModelReconciler, didCreateEvent event: Sync.Event) {
+            // implement event queueing logic here
+        }
+    }
+    
+    public class Event: NSObject {
         /**
          Event type describing a mutation on the model.
          */
@@ -29,7 +74,7 @@ public struct Sync {
         }
         
         public private(set) var type: Type
-        public private(set) var identifier: NSUUID?
+        public private(set) var identifier: NSUUID
         public private(set) var completed: Bool?
         public private(set) var title: String?
         public private(set) var label: UInt8?
@@ -56,25 +101,4 @@ public struct Sync {
         }
         
     }
-    
-    public class Stream: NSObject {
-        
-        /// Last known sequence value received from the server.
-        public private(set) var latestSeq: Int = 0
-        
-        /// Collection of all events known to client (sent and received).
-        public private(set) var publishedEvents: Array<Event> = []
-        
-        /// Collection of all queued events meant for publication.
-        /// This collection is drained as events get published.
-        public private(set) var queuedEvents: Array<Event> = []
-        
-        /// A method that talks to the transport layer and in
-        /// in charge of publishing the `Events` onto the network stream.
-        public func publish(event: Event) {
-            
-        }
-        
-    }
-
 }

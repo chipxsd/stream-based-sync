@@ -9,11 +9,12 @@
 import Foundation
 
 public struct Todo {
-
-    public class List: NSObject {
-
+    public class List: NSObject, ModelReconciler {
         /// Private collection of tasks maintained by this class.
         private var tasks: Array<Task> = []
+        
+        /// Delegate that's in charge of event publication.
+        public weak var outboundEventReceiver: OutboundEventReceiver?
         
         /**
          Creates a new `Task` instance and adds it to the end of the list.
@@ -23,10 +24,9 @@ public struct Todo {
          
          - returns: An `Event` describing the creation of a new object.
          */
-        public func create(title: String, label: Task.ColorLabel) -> Sync.Event {
-            let task = Task(identifier: NSUUID(), completed: false, title: title, label: label)
-            self.tasks.append(task)
-            return Sync.Event(insert: task.identifier, completed: task.completed, title: task.title, label: task.label.rawValue)
+        public func create(title: String, label: Task.ColorLabel) -> Bool {
+            let event = Sync.Event(insert: NSUUID(), completed: true, title: title, label: label.rawValue)
+            return self.applyAndNotify(event)
         }
         
         /**
@@ -45,13 +45,9 @@ public struct Todo {
 
          - returns: An `Event` describing the mutation of an object.
          */
-        public func update(identifier: NSUUID, completed: Bool?, title: String?, label: Task.ColorLabel?) -> Sync.Event? {
-            let task = self.locateTask(identifier)
-            if task == nil {
-                return nil
-            }
-            task!.update(completed, title: title, label: label)
-            return Sync.Event(update: NSUUID(), completed: completed, title: title, label: label != nil ? label!.rawValue : nil as UInt8?)
+        public func update(identifier: NSUUID, completed: Bool?, title: String?, label: Task.ColorLabel?) -> Bool {
+            let event = Sync.Event(update: identifier, completed: completed, title: title, label: label != nil ? label!.rawValue : nil as UInt8?)
+            return self.applyAndNotify(event)
         }
 
         /**
@@ -62,18 +58,61 @@ public struct Todo {
          
          - returns: An `Event` describing the deletion of an object.
          */
-        public func remove(identifier: NSUUID) -> Sync.Event? {
-            if !self.removeTask(identifier) {
-                return nil
+        public func remove(identifier: NSUUID) -> Bool {
+            let event = Sync.Event(delete: identifier)
+            return self.applyAndNotify(event)
+        }
+        
+        public func apply(events: Array<Sync.Event>) -> Bool {
+            for event in events {
+                let success = self.apply(event)
+                if !success {
+                    return false
+                }
             }
-            return Sync.Event(delete: identifier)
+            return true
+        }
+        
+        /**
+         Applies a synced Event onto the List model.
+         
+         - parameter event: A synced event to apply on the model.
+         
+         - returns: Returns `true`, if the operation was successfull;
+         in case of a conflict, the method returns `false`.
+         */
+        private func apply(event: Sync.Event) -> Bool {
+            switch event.type {
+            case .Insert: // Task creation
+                let task = Task(identifier: event.identifier, completed: event.completed!, title: event.title!, label: Task.ColorLabel(rawValue: event.label!)!)
+                self.tasks.append(task)
+            case .Update: // Task updates
+                let task = self.task(event.identifier)
+                if task == nil {
+                    return false
+                }
+                task!.update(event.completed!, title: event.title!, label: Task.ColorLabel(rawValue: event.label!)!)
+            case .Delete: // Task removal
+                if !self.removeTask(event.identifier) {
+                    return false
+                }
+            }
+            return false
+        }
+        
+        private func applyAndNotify(event: Sync.Event) -> Bool {
+            if self.apply(event) {
+                self.outboundEventReceiver?.reconciler(self, didCreateEvent: event)
+                return true
+            }
+            return false
         }
         
         private func indexOfTask(identifier: NSUUID) -> Array<Task>.Index? {
             return self.tasks.indexOf({ $0.identifier == identifier })
         }
         
-        private func locateTask(identifier: NSUUID) -> Task? {
+        private func task(identifier: NSUUID) -> Task? {
             let indexOfTask = self.indexOfTask(identifier)
             if indexOfTask == nil {
                 return nil
@@ -93,7 +132,6 @@ public struct Todo {
     }
 
     public class Task: NSObject {
-        
         /// Client generated identifier, used for referencing and de-duplication.
         public private(set) var identifier: NSUUID
         
@@ -128,7 +166,5 @@ public struct Todo {
                 self.label = label!
             }
         }
-        
     }
-    
 }

@@ -1138,22 +1138,23 @@ public class List: NSObject {
     public func apply(event: Event) {
         // implement event reconciling logic here
     }
-
 }
 ```
 
 We've made a little mess here, haven't we? By adding the extra logic of
-vending `Events` to the `List` manipulation logic in **chapter 4.1**,
-we're not sure anymore which part of the `List` class logic should be in charge
-of mutating the model, because we don't want to write the same code twice,
-nor would we want to expose too much of the API to support all combinations.
-What we've done there could be considered an anti-pattern by some critics.
+vending `Sync.Events` to the `Todo.List` manipulation logic in **chapter 4.1**,
+we're not sure anymore which part of the `Todo.List` class logic should be
+in charge of mutating the model, should it be the `apply()` method or the
+other three methods? We don't want to write the same code twice, nor we want
+the logic responsible for calling `apply()` knowing anything about the
+`Todo.List` model, except that's it's capable of applying events. What we've
+done there could be considered an anti-pattern by some critics.
 
-All three methods (`create()`, `update()` and `remove()`) have two parts
-to it: manipulation of the model and generating and returning the `Event`.
-Thereby, whoever owns the `List` instance, is by this definition responsible
-of sending the event to the stream, as it uses one of the three methods
-we mentioned -- this is also considered an anti-pattern.
+The three methods (`create()`, `update()` and `remove()`) have two parts
+to it: manipulation of the model and generating and returning the `Sync.Event`.
+Therefore, whoever owns the `Todo.List` instance, is by this definition
+responsible for sending the event returned by those methods to the stream --
+this is also considered an anti-pattern.
 
 See for yourself:
 
@@ -1169,6 +1170,129 @@ self.stream.publish(event)
 // Removing tasks
 let event = self.todoList.remove( ... )
 self.stream.publish(event)
+```
+
+One way to refactor the code would be to extract the model manipulation
+logic out of those three "user action" methods, so that the `apply()` function
+can also use it. The other way would be to make the `apply()` method be
+in charge of model manipulation.
+
+```swift
+/**
+ Applies a synced Event onto the List model.
+
+ - parameter event: A synced event to apply on the model.
+
+ - returns: Returns `true`, if the operation was successfull;
+            in case of a conflict, the method returns `false`.
+ */
+private func apply(event: Sync.Event) -> Bool {
+    switch event.type {
+    case .Insert: // Task creation
+        let task = Task(identifier: event.identifier, completed: event.completed!, title: event.title!, label: Task.ColorLabel(rawValue: event.label!)!)
+        self.tasks.append(task)
+    case .Update: // Task updates
+        let task = self.task(event.identifier)
+        if task == nil {
+            return false
+        }
+        task!.update(event.completed!, title: event.title!, label: Task.ColorLabel(rawValue: event.label!)!)
+    case .Delete: // Task removal
+        if !self.removeTask(event.identifier) {
+            return false
+        }
+    }
+    return false
+}
+```
+
+This way, the user action methods are now only in charge of vending
+vending `Sync.Events`, which solves the first anti-pattern. We can also
+delegate the `Sync.Event` sending by using protocols, this way whoever owns
+the `Todo.List` instance, doesn't have to be in charge of sending the
+`Sync.Event` to the transport logic (event publication) -- this solves the
+second anti-pattern.
+
+```swift
+public protocol ModelReconciler: class {
+    /**
+     Applies events from the Array onto the model in the order they're
+     stored in the array.
+
+     - parameter events: An array of `Sync.Event` instances.
+
+     - returns: `true` in case the event was successfully applied onto the model
+                otherwise `false`.
+     */
+    func apply(events: Array<Sync.Event>) -> Bool
+}
+
+public protocol OutboundEventReceiver: class {
+    /**
+     Notifies the receiver that a new event has been created by the model
+     reconciler.
+
+     - parameter reconciler: The instance of the model reconciler making
+                             performing the invocation of this method.
+     - parameter event:      The `Sync.Event` instance created.
+     */
+    func reconciler(reconciler: ModelReconciler, didCreateEvent event: Sync.Event)
+}
+```
+
+With these two protocols, the synchronization logic doesn't need to know
+anything about the `Todo.List` type, and whatever owns the `Todo.List`
+instance, doesn't need to be responsible for taking the vended `Sync.Events`
+and passing them to the transport layer.
+
+Here's the implementation (I'll strip out the comments, to make it shorter):
+
+```swift
+public class List: NSObject, ModelReconciler {
+    private var tasks: Array<Task> = []
+    public weak var outboundEventReceiver: OutboundEventReceiver?
+
+    public func create(title: String, label: Task.ColorLabel) -> Bool {
+        let event = Sync.Event(insert: NSUUID(), completed: true, title: title, label: label.rawValue)
+        return self.applyAndNotify(event)
+    }
+
+    public func update(identifier: NSUUID, completed: Bool?, title: String?, label: Task.ColorLabel?) -> Bool {
+        let event = Sync.Event(update: identifier, completed: completed, title: title, label: label != nil ? label!.rawValue : nil as UInt8?)
+        return self.applyAndNotify(event)
+    }
+
+    public func remove(identifier: NSUUID) -> Bool {
+        let event = Sync.Event(delete: identifier)
+        return self.applyAndNotify(event)
+    }
+
+    // ModelReconciler delegate method implementation    
+    public func apply(events: Array<Sync.Event>) -> Bool {
+        for event in events {
+            let success = self.apply(event)
+            if !success {
+                return false
+            }
+        }
+        return true
+    }
+
+    private func apply(event: Sync.Event) -> Bool {
+        // impementation from before
+    }
+
+    private func applyAndNotify(event: Sync.Event) -> Bool {
+        if self.apply(event) {
+            // Notifying the outbound event receiver that we just created
+            // a new event, ready to be published.
+            self.outboundEventReceiver?.reconciler(self, didCreateEvent: event)
+            return true
+        }
+        return false
+    }
+  }
+}
 ```
 
 Todo:
