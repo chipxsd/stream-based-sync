@@ -1138,10 +1138,11 @@ public class List: NSObject {
 }
 ```
 
-Have you noticed, we've made a little mess here? By adding the extra logic of
+We've made a little mess here, haven't we? By adding the extra logic of
 vending `Events` to the `List` manipulation logic in **chapter 4.1**,
-we're now not sure which part of the `List` class logic should be in charge
-of mutating the model, because we don't want to write the same code twice.
+we're not sure anymore which part of the `List` class logic should be in charge
+of mutating the model, because we don't want to write the same code twice,
+nor would we want to expose too much of the API to support all combinations.
 What we've done there could be considered an anti-pattern by some critics.
 
 All three methods (`create()`, `update()` and `remove()`) have two parts
