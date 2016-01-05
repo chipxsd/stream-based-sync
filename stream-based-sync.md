@@ -969,77 +969,130 @@ model (`List`, `Tasks`), how to design the synchronization model
 (`Stream` and `Events`), we also know how to discover new events in case
 we missed some (based on `Stream.latestSeq` and `Event.map({ $0.seq })`).
 
+But we never asked which part of the client side code is actually responsible
+for vending these `Events`, nor how do we turn incoming `Events` to our
+up-to-date objects.
+
 ### 4.1 Outbound Reconciliation
 
-But we never asked which part of the client side code is actually responsible
-for vending these `Events`. The best place to put the `Event` creation logic
-is where we take user actions, in the heart of our application's logic --
-our `List` class.
+The best place to put the `Event` creation logic is where we take user
+actions, in the heart of our application's logic -- in our to-do `List` class.
+We can afford this in our case, because our `Event` model can describe any
+user action. If you take a close look at the `List` methods and the `Event`
+model, you find some similarities. `Event.Type` defines the method calls,
+and other properties define the arguments we pass into the methods.
 
 ```swift
 public class List: NSObject {
 
     public func create(title: String, label: Task.ColorLabel) -> Sync.Event {
-        return Sync.Event(insert: NSUUID(), completed: false, title: title, label: label.rawValue)
+        let task = Task(identifier: NSUUID(), completed: false, title: title, label: label)
+        self.tasks.append(task)
+        return Sync.Event(insert: task.identifier, completed: task.completed, title: task.title, label: task.label.rawValue)
     }
 
-    public func update(identifier: NSUUID, completed: Bool?, title: String?, label: Task.ColorLabel?) -> Sync.Event {
+    public func update(identifier: NSUUID, completed: Bool?, title: String?, label: Task.ColorLabel?) -> Sync.Event? {
+        let task = self.locateTask(identifier)
+        if task == nil {
+            return nil
+        }
+        task!.update(completed, title: title, label: label)
         return Sync.Event(update: NSUUID(), completed: completed, title: title, label: label != nil ? label!.rawValue : nil as UInt8?)
     }
 
-    public func remove(identifier: NSUUID) -> Sync.Event {
+    public func remove(identifier: NSUUID) -> Sync.Event? {
+        if !self.removeTask(identifier) {
+            return nil
+        }
         return Sync.Event(delete: identifier)
     }
 
 }
 ```
 
+This is how we turn model mutation into events.
+
 Todo:
 
-* [x] Turning model mutations into events.
-* [ ] Maintaining short edit distances.
+* [x] How to turn model changes into `Events`.
+* [ ] Run the `List` functions through a few examples.
 
 ### 4.2 Inbound Reconciliation
-* Taking mutation data from events and applying it on the model.
-* Conflict resolution.
 
+Todo:
+
+* [ ] Taking mutation data from events and applying it on the model.
+
+### 4.3 Reducing the Edit Distance
+
+Todo:
+
+* [ ] How to maintain a short edit distance during reconciliation.
+
+### 4.4 Conflict Resolution
+
+Todo:
+
+* [ ] Explain how two (or more) parties can mutate the same object at the
+      time.
+* [ ] Most basic conflict resolution is: last writer wins.
 
 ## 5. Order of Events
-* How to keep the events published by clients in the correct order?
+
+Todo:
+
+* [ ] How to keep the events published by clients in the correct order?
+* [ ] Talk about total the order and causal order.
 
 ### 5.1 Synchronized Sequential Writes
-* Locking the stream (e.g. table or row in database) increases the response
+
+Todo:
+
+* [ ] Locking the stream (e.g. table or row in database) increases the response
   time drastically in noisy streams.
 
 ### 5.2 Don't Even Think About Timestamps!
-* Relying on timestamps to keep the order of events requires an
-  extra level of synchronization, which is in most cases unreliable to
-  reconstruct the order of events.
+
+Todo:
+
+* [ ] Relying on timestamps to keep the order of events requires an
+      extra level of synchronization, which is in most cases unreliable to
+      reconstruct the order of events.
 
 ### 5.3 Version Vectors
-* Reconstructing event order based on happened-before information clients
-  include in events.
-* They enable causality tracking between clients (nodes) -- basic mechanism in
-  optimistic (lazy) replications.
-* Very useful when resolving conflicts.
 
+Todo:
+
+* [ ] Reconstructing event order based on happened-before information clients
+      include in events.
+* [ ] They enable causality tracking between clients (nodes) -- basic mechanism in
+      optimistic (lazy) replications.
+* [ ] Very useful when resolving conflicts.
 
 ## 6. Advantages
-* Fast because of the low bandwidth and CPU usage cost when getting the data
-  (deltas) delivered in real-time.
-* Easy to implement load balancing and replication on server.
+
+Todo:
+
+* [ ] Fast because of the low bandwidth and CPU usage cost when getting the data
+      (deltas) delivered in real-time.
+* [ ] Easy to implement load balancing and replication on server.
 
 
 ## 7. Shortcomings
-* To get to a fully reconciled model from a cold-state can take a lot of
-  resources (time, bandwidth and CPU).
-* Very difficult to implement partial sync process (since you don't have a
-  complete view of the stream at the beginning of the sync process).
 
+Todo:
+
+* [ ] To get to a fully reconciled model from a cold-state can take a lot of
+      resources (time, bandwidth and CPU).
+* [ ] Very difficult to implement partial sync process (since you don't have a
+      complete view of the stream at the beginning of the sync process).
 
 ## 8. Possible Optimizations
-* Building immutable indexes based on the specific attributes of the model,
-  so that clients can prioritize relevant data or ignore irrelevant data.
-* Building fast-forward snapshots of model from events by pre-reconciling it
-  on server (coalesce mutations for same objects and its attributes,
-  reduce edit distance) -- hybrid approach.
+
+Todo:
+
+* [ ] Building immutable indexes based on the specific attributes of the model,
+      so that clients can prioritize relevant data or ignore irrelevant data.
+* [ ] Building fast-forward snapshots of model from events by pre-reconciling it
+      on server (coalesce mutations for same objects and its attributes,
+      reduce edit distance) -- hybrid approach.
