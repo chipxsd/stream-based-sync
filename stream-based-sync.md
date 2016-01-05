@@ -998,15 +998,16 @@ _"Outbund Reconciliation"_.
 ![fig.20 - Outbound Reconciliation](./images/fig-20-outbound-reconciliation.png "fig. 20 - Outbound Reconciliation")
 
 { fig.20 - a list of todo items on the left with an arrow pointing to
-small sheets of papers with a delta symbols on them }
+events on the center and another arrow pointing at the stream on the right}
 
 The best place to put the `Event` creation logic is where we take user
 actions, in the heart of our application's logic -- that's in the to-do
 `List` class. We can afford this in our case, because the `Event` model
 can hold the exact information to describe user actions `List` logic provides.
-If you take a close look at the `List` methods and the `Event` model,
-you'll find some similarities. `Event.Type` defines the method calls,
-and other properties define the arguments we pass into the methods.
+If you take a close look at the `List` instance methods and the `Event` model,
+you'll find some similarities. `Event.type` defines the method calls,
+and thre rest of `Event's` properties define the arguments we pass
+into the methods.
 
 ```swift
 public class List: NSObject {
@@ -1091,8 +1092,9 @@ print("event: '\(event)", event)
 
 #### Publishing Events
 
-This is how we turn model mutation into events. The only thing that's left
-for these `Events` is shipping them off to the server and on to the stream.
+And this is how we turn model mutation into events. The only thing that's left
+for these `Events` is shipping them off to the server and on to the stream,
+so that the other clients can receive them.
 
 ```swift
 // Sends the event to the stream over the network.
@@ -1100,6 +1102,59 @@ self.stream.publish(event)
 ```
 
 ### 4.2 Inbound Reconciliation
+
+What do other clients do with `Events`, once they receive them from the server?
+These `Events` have to be turned back into object. It's a process we can
+name _"Inbound Reconciliation"_.
+
+![fig.21 - Inbound Reconciliation](./images/fig-21-inbound-reconciliation.png "fig. 21 - Inbound Reconciliation")
+
+{ fig.21 - same as figure 20. but mirrored }
+
+As with the _Outbound Reconciliation_ logic, described in **chapter 4.1**,
+_Inbound Reconciliation_ logic can be a resident of the to-do `List` class.
+
+```swift
+public class List: NSObject {
+
+    public func create(title: String, label: Task.ColorLabel) -> Sync.Event
+    public func update(identifier: NSUUID, completed: Bool?, title: String?, label: Task.ColorLabel?) -> Sync.Event?
+    public func remove(identifier: NSUUID) -> Sync.Event?
+
+    public func apply(event: Event) {
+        // implement event reconciling logic here
+    }
+
+}
+```
+
+Have you noticed, we've made a little mess here? By adding the extra logic of
+vending `Events` to the `List` manipulation logic in **chapter 4.1**,
+we're now not sure which part of the `List` class logic should be in charge
+of mutating the model, because we don't want to write the same code twice.
+What we've done there could be considered an anti-pattern by some critics.
+
+All three methods (`create()`, `update()` and `remove()`) have two parts
+to it: manipulation of the model and generating and returning the `Event`.
+Thereby, whoever owns the `List` instance, is by this definition responsible
+of sending the event to the stream, as it uses one of the three methods
+we mentioned -- this is also considered an anti-pattern.
+
+See for yourself:
+
+```swift
+// Creating tasks
+let event = self.todoList.create( ... )
+self.stream.publish(event)
+
+// Updating tasks
+let event = self.todoList.update( ... )
+self.stream.publish(event)
+
+// Removing tasks
+let event = self.todoList.remove( ... )
+self.stream.publish(event)
+```
 
 Todo:
 
@@ -1131,7 +1186,7 @@ Todo:
 Todo:
 
 * [ ] Locking the stream (e.g. table or row in database) increases the response
-  time drastically in noisy streams.
+      time drastically in noisy streams.
 
 ### 5.2 Don't Even Think About Timestamps!
 
