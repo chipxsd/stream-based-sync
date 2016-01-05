@@ -856,11 +856,11 @@ public class Event: NSObject {
 }
 ```
 
-As `Events` get generated and transmitted by the clients, server takes them
-and assigns them a sequence value. With every event written to storage,
-sequence value is incremented. First event written to the stream has a
+As clients generate and upload `Events`, server picks them up, assigns them a
+sequence value and persists them to storage. With every event written to
+storage, sequence value is incremented. First event written to the stream has a
 sequence value of `seq: 0`, second one get the value of `seq: 1`, etc. You
-get the idea how incremented integers work. And yes, the work of assigning
+get the idea how incrementing integers goes. And yes, the work of assigning
 sequence values can be put off on the database, if the database supports
 auto incremented record sequencing.
 
@@ -869,7 +869,7 @@ a basic inquiry of "what's the last sequence value written to the stream?"
 is enough. With the server response client takes the number and stores it.
 The best place to store it would be in an object, where we'd keep all
 information associated with a stream. For now, we're only interested in
-what's the last `seq` value written to the stream:
+what is the most recent event's `seq` value written to the stream:
 
 ```swift
 public class Stream: NSObject {
@@ -890,11 +890,11 @@ public class Stream: NSObject {
 }
 ```
 
-With that information, a client can run through a list of `seq` values from
+With that information, a client can run through a list of `seq` values of
 the events it's got on itself from before, and diff it against a set of
 integers going from zero `0` to whatever the number of events server
 told us it has. Now client knows exactly which events it needs to pull
-from the server -- based on a _diffed_ set of `seq` -- in order to
+from the server (based on a _diffed_ set of `seq`) in order to
 get to a consistent state with other peers.
 
 ![fig.19 - Sequenced Events](./images/fig-19-sequenced-events.png "fig. 19 - Sequenced Events")
@@ -931,7 +931,7 @@ I'll be reference them.
     latestSeq = 14
     ```
 
-4.  The offline client (from 2. step) comes back online, where `5` more events
+4.  The offline client (from 2. step) comes back online, when `5` more events
     get published. This now makes it a total of `20` events.
 
     ```javascript
@@ -957,18 +957,21 @@ I'll be reference them.
     in a following set of integers:
 
     ```swift
+    // Seq values pulled from all events the client has.
     // [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16, 17, 18, 19 ]
     let seqsOfEvents: Set = events.map({ $0.seq })
 
+    // Calculated sequence ranging from 0 to 19.
     // [ 0, 1, 2, 3 ... 19 ]
     let seqsOfAllEvents: Set = [Int](0...19)
 
+    // Diffed set of seq values.
     // [ 10, 11, 12, 13, 14 ]
     let seqsOfMissingEvents: Set = seqOfAllEvents.subtract(seqOfEvents)
     ```
 
     Note: _working with [NSIndexSet](https://developer.apple.com/library/mac/documentation/Cocoa/Reference/Foundation/Classes/NSIndexSet_Class/)
-    would be far more efficient, but I wanted to use standard sets for the
+    would be far more efficient, but I wanted to use classic sets for the
     sake of simplicity._
 
 7. With the set of `seq` annotating the missing events, client asks the
@@ -992,11 +995,17 @@ If we have to pick a name for this process of turning model mutations into
 synchronize-able (syncable for short) `Events`, let's call it
 _"Outbund Reconciliation"_.
 
+![fig.20 - Outbound Reconciliation](./images/fig-20-outbound-reconciliation.png "fig. 20 - Outbound Reconciliation")
+
+{ fig.20 - a list of todo items on the left with an arrow pointing to
+small sheets of papers with a delta symbols on them }
+
 The best place to put the `Event` creation logic is where we take user
-actions, in the heart of our application's logic -- in our to-do `List` class.
-We can afford this in our case, because our `Event` model can describe any
-user action. If you take a close look at the `List` methods and the `Event`
-model, you find some similarities. `Event.Type` defines the method calls,
+actions, in the heart of our application's logic -- that's in the to-do
+`List` class. We can afford this in our case, because the `Event` model
+can hold the exact information to describe user actions `List` logic provides.
+If you take a close look at the `List` methods and the `Event` model,
+you'll find some similarities. `Event.Type` defines the method calls,
 and other properties define the arguments we pass into the methods.
 
 ```swift
@@ -1082,18 +1091,13 @@ print("event: '\(event)", event)
 
 #### Publishing Events
 
-This is how we turn model mutation into events. The only thing that's
-left for these `Events` is shipping them off to the stream.
+This is how we turn model mutation into events. The only thing that's left
+for these `Events` is shipping them off to the server and on to the stream.
 
 ```swift
 // Sends the event to the stream over the network.
 self.stream.publish(event)
 ```
-
-Todo:
-
-* [x] How to turn model changes into `Events`.
-* [x] Run the `List` functions through a few examples.
 
 ### 4.2 Inbound Reconciliation
 
