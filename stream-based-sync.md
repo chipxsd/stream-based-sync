@@ -574,6 +574,16 @@ corruption -- but it also makes it easy to employ load balancing approaches.
 to them, where one of the services is dead, and a few clients connected
 to services. }
 
+A feature we tend to forget about is also **offline support**.
+Synchronization logic should not prevent the application logic from operating
+autonomously. Your synchronized photo library (camera roll) is accessible on
+all your mobile device. Imagine if you couldn't take photos, edit or
+remove them from your library, when you're out of the network conectivity?
+
+![fig.12 - Offline Support](./images/fig-12-offline-support.png "fig. 12 - Offline Support")
+
+{ fig.12 - An globe with a gian cross mark over it }
+
 ### 3.2 Stream of Events
 
 Finally, we get to talk about stream based synchronization. Remember how
