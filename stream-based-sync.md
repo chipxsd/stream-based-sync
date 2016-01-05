@@ -1010,14 +1010,19 @@ _"Outbund Reconciliation"_.
 { fig.21 - a list of todo items on the left with an arrow pointing to
 events on the center and another arrow pointing at the stream on the right}
 
-The best place to put the `Event` creation logic is where we take user
+One of the spots to put the `Event` creation logic is where we take the user
 actions, in the heart of our application's logic -- that's in the to-do
-`List` class. We can afford this in our case, because the `Event` model
-can hold the exact information to describe user actions `List` logic provides.
-If you take a close look at the `List` instance methods and the `Event` model,
-you'll find some similarities. `Event.type` defines the method calls,
-and thre rest of `Event's` properties define the arguments we pass
-into the methods.
+`List` class. In our case, this is really affordable, because the `Event` model
+can hold the exact information to describe user actions the `List` logic
+provides. If you take a close look at the `List` instance methods and
+the `Event` model, you'll find some resemblance. `Event.type` defines
+the method calls, and the rest of `Event's` properties define the arguments
+we pass into the methods.
+
+![fig.22 - Resemblance Between Event and List](./images/fig-22-resemblance-between-event-and-list.png "fig. 22 - Resemblance Between Event and List")
+
+{ fig.22 - a screenshot of `List` and `Event` class definition with arrows
+pointing out similarities }
 
 ```swift
 public class List: NSObject {
@@ -1117,12 +1122,13 @@ What do other clients do with `Events`, once they receive them from the server?
 These `Events` have to be turned back into object. It's a process we can
 name _"Inbound Reconciliation"_.
 
-![fig.22 - Inbound Reconciliation](./images/fig-22-inbound-reconciliation.png "fig. 22 - Inbound Reconciliation")
+![fig.23 - Inbound Reconciliation](./images/fig-22-inbound-reconciliation.png "fig. 22 - Inbound Reconciliation")
 
-{ fig.22 - same as figure 20. but mirrored }
+{ fig.23 - same as figure 20. but mirrored; server on the left, sending events
+drawn in the middle, turning into a checklist }
 
 As with the _Outbound Reconciliation_ logic, described in **chapter 4.1**,
-_Inbound Reconciliation_ logic can be a resident of the to-do `List` class.
+_Inbound Reconciliation_ logic can reside in the to-do `List` class.
 
 ```swift
 public class List: NSObject {
