@@ -629,11 +629,11 @@ Let's write down use cases and support them with a data model:
 1. Application provides a live synchronized list of to-do tasks;
 
     ```swift
-    public class List: NSObject {
-
-        /// A private collection of tasks maintained by this class.
-        private let tasks: Array<Task> = []
-
+    public struct Todo {
+        public class List: NSObject {
+            /// A private collection of tasks maintained by this class.
+            private let tasks: Array<Task> = []
+        }
     }
     ```
 
@@ -644,37 +644,37 @@ Let's write down use cases and support them with a data model:
       2 = orange, 3 = yellow, etc.)
 
     ```swift
-    public class Task: NSObject {
+    public struct Todo {
+        public class Task: NSObject {
+            /// Client generated identifier, used for referencing and de-duplication.
+            public private(set) var identifier: NSUUID
+            /// Boolean state indicating the completion of the task.
+            public private(set) var completed: Bool
+            /// Text description of the task.
+            public private(set) var title: String
+            /// Color coded label of the task.
+            public private(set) var label: ColorLabel
 
-        /// Client generated identifier, used for referencing and de-duplication.
-        public private(set) var identifier: NSUUID
-        /// Boolean state indicating the completion of the task.
-        public private(set) var completed: Bool
-        /// Text description of the task.
-        public private(set) var title: String
-        /// Color coded label of the task.
-        public private(set) var label: ColorLabel
-
-        public enum ColorLabel: UInt8 {
-            case None = 0, Red, Orange, Yellow, Green, Turquoise, Blue, Purple, Pink
+            public enum ColorLabel: UInt8 {
+                case None = 0, Red, Orange, Yellow, Green, Turquoise, Blue, Purple, Pink
+            }
         }
-
     }
     ```
 
 3. Tasks can be added to the list, edited or removed from the list;
 
     ```swift
-    public class List: NSObject {
+    public struct Todo {
+        public class List: NSObject {
+            /// A private collection of tasks maintained by this class.
+            private let tasks: Array<Task> = []
 
-        /// A private collection of tasks maintained by this class.
-        private let tasks: Array<Task> = []
-
-        /// Method for manipulating the to-do list.
-        public func create(title: String, label: Task.ColorLabel)
-        public func update(identifier: NSUUID, completed: Bool?, title: String?, label: Task.ColorLabel?)
-        public func remove(identifier: NSUUID)
-
+            /// Method for manipulating the to-do list.
+            public func create(title: String, label: Task.ColorLabel)
+            public func update(identifier: NSUUID, completed: Bool?, title: String?, label: Task.ColorLabel?)
+            public func remove(identifier: NSUUID)
+        }
     }
     ```
 
@@ -690,38 +690,38 @@ They support all user actions we care for:
 
 So how do we describe these user actions, so that we can transmit them
 over the network? User actions cause mutations to our model (which are
-`Task` and `List`), and we need to encode these mutations as
-deltas. Well, I prefer to use the word `Event` to symbolize an action.
+`Todo.Task` and `Todo.List`), and we need to encode these mutations as
+deltas. Well, I prefer to use the word `Sync.Event` to symbolize an action.
 
 How would an event structure look like in our code? It is pretty close to
-the `Task` model. Also keep in mind that objects we want to use in our
+the `Todo.Task` model. Also keep in mind that objects we want to use in our
 synchronization logic should be simple concrete objects conforming to some
 serializable and de-serializable protocol (of your choice), since we'll be
 transmitting them over the network.
 
 ```swift
-public class Event: NSObject {
+public struct Sync {
+  public class Event: NSObject {
+      /// Event type describing a mutation on the model.     
+      public enum Type: UInt8 {
+          case Insert = 0, Update, Delete
+      }
 
-    /// Event type describing a mutation on the model.     
-    public enum Type: UInt8 {
-        case Insert = 0, Update, Delete
-    }
-
-    public private(set) var type: Type
-    public private(set) var identifier: NSUUID?
-    public private(set) var completed: Bool?
-    public private(set) var title: String?
-    public private(set) var label: Int?
-
+      public private(set) var type: Type
+      public private(set) var identifier: NSUUID?
+      public private(set) var completed: Bool?
+      public private(set) var title: String?
+      public private(set) var label: Int?
+  }
 }
 ```
 
 You might be wondering, why couldn't we just use or extend the existing
-model (`Task`), since they are pretty much symmetrical? It's because
+model (`Todo.Task`), since they are pretty much symmetrical? It's because
 we'll need a little more data that will help us at the sync process, but
 we'll get to that later.
 
-So, if a user creates a new task in the app, app will emit an `Event` over
+So, if a user creates a new task in the app, app will emit an `Sync.Event` over
 the network. _Note: again, I'm going to use JSON-like notation to describe
 objects with values_.
 
@@ -771,7 +771,7 @@ on the screen and a few checked items below }
 
 However, if a client comes online a few moments later, it might've missed
 events which are important to reconstruct the dataset. What good is
-an `Event` telling that a task was completed to a client that never saw
+an `Sync.Event` telling that a task was completed to a client that never saw
 the original task to begin with?
 
 ![fig.18 - Missing Events](./images/fig-18-missing-events.png "fig. 18 - Missing Events")
@@ -818,13 +818,13 @@ cannot guarantee it will yield the same or any result when asking it
 for a record based on certain key, since the record might've not been written
 nor indexed yet.
 
-In our _To-do List_ app example, we gave our `Task` objects their
+In our _To-do List_ app example, we gave our `Todo.Task` objects their
 own `identifiers`, client generated
 [UUIDs](https://en.wikipedia.org/wiki/Universally_unique_identifier).
-This let's us reference `Tasks` in `Events` when applying mutations onto
-to model. These identifiers could also be useful to fetch all `Events`
-representing the final state of a `Task` from the database, if database
-kept an index of these identifier values. But as we figured out,
+This let's us reference `Todo.Tasks` in `Sync.Events` when applying mutations
+onto to model. These identifiers could also be useful to fetch all
+`Sync.Events` representing the final state of a `Todo.Task` from the database,
+if database kept an index of these identifier values. But as we figured out,
 in certain edge cases (due to eventual consistency), a replicated database
 cluster might return a different result set from another.
 
@@ -839,35 +839,35 @@ transferring a lot more data, than it's truly necessary.
 
 ### 3.5 Event Discovery
 
-This is where sequencing comes in handy. Giving an `Event` a unique
+This is where sequencing comes in handy. Giving an `Sync.Event` a unique
 server-generated cardinal value, we could leverage it as a
 lightweight index to our events. In math, this is also called a countable
 ordered index set, where the value of n-th element is equal to its zero
 based index n. The maximum value which is also the value of the last
 element in such index set denotes its size (the count of elements).
 
-Let's extend our `Event` model with a new property called `seq`:
+Let's extend our `Sync.Event` model with a new property called `seq`:
 
 ```swift
-public class Event: NSObject {
+public struct Sync {
+    public class Event: NSObject {
+        /// Event type describing a mutation on the model.     
+        public enum Type: UInt8 {
+            case Insert = 0, Update, Delete
+        }
 
-    /// Event type describing a mutation on the model.     
-    public enum Type: UInt8 {
-        case Insert = 0, Update, Delete
+        public private(set) var seq: Int? // server generated index value
+        public private(set) var type: Type
+        public private(set) var identifier: NSUUID?
+        public private(set) var completed: Bool?
+        public private(set) var title: String?
+        public private(set) var label: Int?
     }
-
-    public private(set) var seq: Int? // server generated index value
-    public private(set) var type: Type
-    public private(set) var identifier: NSUUID?
-    public private(set) var completed: Bool?
-    public private(set) var title: String?
-    public private(set) var label: Int?
-
 }
 ```
 
-As clients generate and upload `Events`, server picks them up, assigns them a
-sequence value and persists them to storage. With every event written to
+As clients generate and upload `Sync.Events`, server picks them up, assigns
+them a sequence value and persists them to storage. With every event written to
 storage, sequence value is incremented. First event written to the stream has a
 sequence value of `seq: 0`, second one get the value of `seq: 1`, etc. You
 get the idea how incrementing integers goes. And yes, the work of assigning
@@ -882,21 +882,21 @@ information associated with a stream. For now, we're only interested in
 what is the most recent event's `seq` value written to the stream:
 
 ```swift
-public class Stream: NSObject {
+public struct Sync {
+  public class Stream: NSObject {
+      /// Last known sequence value received from the server.
+      public private(set) var latestSeq: Int = 0
 
-    /// Last known sequence value received from the server.
-    public private(set) var latestSeq: Int = 0
+      /// All events known to client (sent and received).
+      public private(set) var publishedEvents: Array<Event> = []
 
-    /// All events known to client (sent and received).
-    public private(set) var publishedEvents: Array<Event> = []
+      /// All queued events meant for publication.
+      public private(set) var queuedEvents: Array<Event> = []
 
-    /// All queued events meant for publication.
-    public private(set) var queuedEvents: Array<Event> = []
-
-    /// A method that talks to the transport layer and in
-    /// in charge of publishing the `Events` onto the network stream.
-    public func publish(event: Event)
-
+      /// A method that talks to the transport layer and in
+      /// in charge of publishing the `Sync.Events` onto the network stream.
+      public func publish(event: Event)
+  }
 }
 ```
 
@@ -919,7 +919,7 @@ completely empty. I'm going to numerate the steps in this example, because
 I'll be reference them.
 
 1.  Through the use of the _To-do List_ app, clients have generated `10` events.
-    All these connected clients were fortunate to receive the `Events` as
+    All these connected clients were fortunate to receive the `Sync.Events` as
     they got published to the stream in real-time.
 
     ```javascript
@@ -960,7 +960,7 @@ I'll be reference them.
     ```
 
     We described such client as being in an _out-of-sync_ state. It's got a few
-    `Events` that don't mean anything without their predecessors.
+    `Sync.Events` that don't mean anything without their predecessors.
 
 6.  Client creates a set of `seq` values from all the events it has and
     subtracts it with a set of integers ranging from `0` to `19`. Which results
@@ -988,21 +988,22 @@ I'll be reference them.
    server to hand out these events, which brings the client back to a
    consistent state.
 
-## 4. Reconciling Events to Data Model
+## 4. Event and Model Reconciliation
 
 By now, we've answered the question on how to design our application data
-model (`List`, `Tasks`), how to design the synchronization model
-(`Stream` and `Events`), we also know how to discover new events in case
-we missed some (based on `Stream.latestSeq` and `Event.map({ $0.seq })`).
+model (`Todo.List`, `Todo.Tasks`), how to design the synchronization model
+(`Sync.Stream` and `Sync.Events`), we also know how to discover new events
+in case we missed some (based on `stream.latestSeq` and
+  `Sync.Event.map({ $0.seq })`).
 
 But we never asked which part of the client side code is actually responsible
-for vending these `Events`, nor how do we turn incoming `Events` back to our
-objects.
+for vending these `Sync.Events`, nor how do we turn incoming `Sync.Events`
+back to our objects.
 
 ### 4.1 Outbound Reconciliation
 
 If we have to pick a name for this process of turning model mutations into
-synchronize-able (syncable for short) `Events`, let's call it
+synchronize-able (syncable for short) `Sync.Events`, let's call it
 _"Outbund Reconciliation"_.
 
 ![fig.21 - Outbound Reconciliation](./images/fig-21-outbound-reconciliation.png "fig. 21 - Outbound Reconciliation")
@@ -1010,23 +1011,22 @@ _"Outbund Reconciliation"_.
 { fig.21 - a list of todo items on the left with an arrow pointing to
 events on the center and another arrow pointing at the stream on the right}
 
-One of the spots to put the `Event` creation logic is where we take the user
+One of the spots to put the `Sync.Event` creation logic is where we take the user
 actions, in the heart of our application's logic -- that's in the to-do
-`List` class. In our case, this is really affordable, because the `Event` model
-can hold the exact information to describe user actions the `List` logic
-provides. If you take a close look at the `List` instance methods and
-the `Event` model, you'll find some resemblance. `Event.type` defines
-the method calls, and the rest of `Event's` properties define the arguments
-we pass into the methods.
+`Todo.List` class. In our case, this is really affordable, because the
+`Sync.Event` model can hold the exact information to describe user actions
+the `Todo.List` logic provides. If you take a close look at the `Todo.List`
+instance methods and the `Sync.Event` model, you'll find some resemblance.
+`Sync.Event.type` defines the method calls, and the rest of `Sync.Event's`
+properties define the arguments we pass into the methods.
 
 ![fig.22 - Resemblance Between Event and List](./images/fig-22-resemblance-between-event-and-list.png "fig. 22 - Resemblance Between Event and List")
 
-{ fig.22 - a screenshot of `List` and `Event` class definition with arrows
-pointing out similarities }
+{ fig.22 - a screenshot of `Todo.List` and `Sync.Event` class definition
+  with arrows pointing out similarities }
 
 ```swift
 public class List: NSObject {
-
     public func create(title: String, label: Task.ColorLabel) -> Sync.Event {
         let task = Task(identifier: NSUUID(), completed: false, title: title, label: label)
         self.tasks.append(task)
@@ -1034,12 +1034,12 @@ public class List: NSObject {
     }
 
     public func update(identifier: NSUUID, completed: Bool?, title: String?, label: Task.ColorLabel?) -> Sync.Event? {
-        let task = self.locateTask(identifier)
+        let task = self.task(identifier)
         if task == nil {
             return nil
         }
         task!.update(completed, title: title, label: label)
-        return Sync.Event(update: NSUUID(), completed: completed, title: title, label: label != nil ? label!.rawValue : nil as UInt8?)
+        return Sync.Event(update: identifier, completed: completed, title: title, label: label != nil ? label!.rawValue : nil as UInt8?)
     }
 
     public func remove(identifier: NSUUID) -> Sync.Event? {
@@ -1048,7 +1048,6 @@ public class List: NSObject {
         }
         return Sync.Event(delete: identifier)
     }
-
 }
 ```
 
@@ -1056,8 +1055,8 @@ Let's see how these methods play out:
 
 #### Creating Tasks
 
-Telling the to-do `List` object to create and put a new `Task` on list
-will now also vend an `Event`:
+Telling the to-do `Todo.List` object to create and put a new `Todo.Task` on
+list will now also vend an `Sync.Event`:
 
 ```swift
 let todoList = List()
@@ -1075,8 +1074,8 @@ print("event: '\(event)", event)
 
 #### Updating Tasks
 
-Invoking the `update(identifier:completed:title:label:)` method on `List`
-instance will give us an `Event` of type `update`:
+Invoking the `update(identifier:completed:title:label:)` method on `Todo.List`
+instance will give us an `Sync.Event` of type `update`:
 
 ```swift
 let task = todoList[0]; // returns first task in the list
@@ -1092,7 +1091,7 @@ print("event: '\(event)", event)
 
 #### Removing Tasks
 
-And removing a task from a `List` is no different:
+And removing a task from a `Todo.List` is no different:
 
 ```swift
 let task = todoList[0]; // returns first task in the list
@@ -1108,8 +1107,8 @@ print("event: '\(event)", event)
 #### Publishing Events
 
 And this is how we turn model mutation into events. The only thing that's left
-for these `Events` is shipping them off to the server and on to the stream,
-so that the other clients can receive them.
+for these `Sync.Events` is shipping them off to the server and on to the
+stream, so that the other clients can receive them.
 
 ```swift
 // Sends the event to the stream over the network.
@@ -1118,9 +1117,9 @@ self.stream.publish(event)
 
 ### 4.2 Inbound Reconciliation
 
-What do other clients do with `Events`, once they receive them from the server?
-These `Events` have to be turned back into object. It's a process we can
-name _"Inbound Reconciliation"_.
+What do other clients do with `Sync.Events`, once they receive them from
+the server? These `Sync.Events` have to be turned back into object. It's a
+process we can name _"Inbound Reconciliation"_.
 
 ![fig.23 - Inbound Reconciliation](./images/fig-22-inbound-reconciliation.png "fig. 22 - Inbound Reconciliation")
 
@@ -1128,11 +1127,10 @@ name _"Inbound Reconciliation"_.
 drawn in the middle, turning into a checklist }
 
 As with the _Outbound Reconciliation_ logic, described in **chapter 4.1**,
-_Inbound Reconciliation_ logic can reside in the to-do `List` class.
+_Inbound Reconciliation_ logic can reside in the to-do `Todo.List` class.
 
 ```swift
 public class List: NSObject {
-
     public func create(title: String, label: Task.ColorLabel) -> Sync.Event
     public func update(identifier: NSUUID, completed: Bool?, title: String?, label: Task.ColorLabel?) -> Sync.Event?
     public func remove(identifier: NSUUID) -> Sync.Event?
