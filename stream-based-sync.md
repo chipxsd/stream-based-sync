@@ -684,7 +684,10 @@ over the network? User actions cause mutations to our model (which are
 deltas. Well, I prefer to use the word `Event` to symbolize an action.
 
 How would an event structure look like in our code? It is pretty close to
-the `Task` model.
+the `Task` model. Also keep in mind that objects we want to use in our
+synchronization logic should be simple concrete objects conforming to some
+serializable and de-serializable protocol (of your choice), since we'll be
+transmitting them over the network.
 
 ```swift
 public class Event: NSObject {
@@ -872,7 +875,17 @@ what's the last `seq` value written to the stream:
 public class Stream: NSObject {
 
     /// Last known sequence value received from the server.
-    public private var latestSeq: Int
+    public private(set) var latestSeq: Int = 0
+
+    /// All events known to client (sent and received).
+    public private(set) var publishedEvents: Array<Event> = []
+
+    /// All queued events meant for publication.
+    public private(set) var queuedEvents: Array<Event> = []
+
+    /// A method that talks to the transport layer and in
+    /// in charge of publishing the `Events` onto the network stream.
+    public func publish(event: Event)
 
 }
 ```
@@ -970,10 +983,14 @@ model (`List`, `Tasks`), how to design the synchronization model
 we missed some (based on `Stream.latestSeq` and `Event.map({ $0.seq })`).
 
 But we never asked which part of the client side code is actually responsible
-for vending these `Events`, nor how do we turn incoming `Events` to our
-up-to-date objects.
+for vending these `Events`, nor how do we turn incoming `Events` back to our
+objects.
 
 ### 4.1 Outbound Reconciliation
+
+If we have to pick a name for this process of turning model mutations into
+synchronize-able (syncable for short) `Events`, let's call it
+_"Outbund Reconciliation"_.
 
 The best place to put the `Event` creation logic is where we take user
 actions, in the heart of our application's logic -- in our to-do `List` class.
@@ -1010,12 +1027,73 @@ public class List: NSObject {
 }
 ```
 
-This is how we turn model mutation into events.
+Let's see how these methods play out:
+
+#### Creating Tasks
+
+Telling the to-do `List` object to create and put a new `Task` on list
+will now also vend an `Event`:
+
+```swift
+let todoList = List()
+let event = todoList.create("Buy Milk", label: Task.ColorLabel.None)
+print("event: '\(event)", event)
+
+// event: {
+//   type: 0,                                              // 0 = Insert
+//   identifier: "cb55ceec-b9ae-4bd9-8783-7dbf3e9cb2cd",   // client generated id
+//   completed: false,                                     // an incomplete task
+//   title: "Buy milk",                                    // task description
+//   label: 0                                              // task without a label
+// }
+```
+
+#### Updating Tasks
+
+Invoking the `update(identifier:completed:title:label:)` method on `List`
+instance will give us an `Event` of type `update`:
+
+```swift
+let task = todoList[0]; // returns first task in the list
+let event = todoList.update(task.identifier, completed: true, title: nil, label: nil)
+print("event: '\(event)", event)
+
+// event: {
+//   type: 1,                                              // 1 = Update
+//   identifier: "cb55ceec-b9ae-4bd9-8783-7dbf3e9cb2cd",   // task's identifier from before
+//   completed: true                                       // new value
+// }
+```
+
+#### Removing Tasks
+
+And removing a task from a `List` is no different:
+
+```swift
+let task = todoList[0]; // returns first task in the list
+let event = todoList.remove(task.identifier)
+print("event: '\(event)", event)
+
+// event: {
+//   type: 2,                                              // 2 = Delete
+//   identifier: "cb55ceec-b9ae-4bd9-8783-7dbf3e9cb2cd",   // task's identifier from before
+// }
+```
+
+#### Publishing Events
+
+This is how we turn model mutation into events. The only thing that's
+left for these `Events` is shipping them off to the stream.
+
+```swift
+// Sends the event to the stream over the network.
+self.stream.publish(event)
+```
 
 Todo:
 
 * [x] How to turn model changes into `Events`.
-* [ ] Run the `List` functions through a few examples.
+* [x] Run the `List` functions through a few examples.
 
 ### 4.2 Inbound Reconciliation
 

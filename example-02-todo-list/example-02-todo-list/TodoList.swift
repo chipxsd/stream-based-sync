@@ -13,7 +13,7 @@ public struct Todo {
     public class List: NSObject {
 
         /// Private collection of tasks maintained by this class.
-        private let tasks: Array<Task> = []
+        private var tasks: Array<Task> = []
         
         /**
          Creates a new `Task` instance and adds it to the end of the list.
@@ -24,7 +24,9 @@ public struct Todo {
          - returns: An `Event` describing the creation of a new object.
          */
         public func create(title: String, label: Task.ColorLabel) -> Sync.Event {
-            return Sync.Event(insert: NSUUID(), completed: false, title: title, label: label.rawValue)
+            let task = Task(identifier: NSUUID(), completed: false, title: title, label: label)
+            self.tasks.append(task)
+            return Sync.Event(insert: task.identifier, completed: task.completed, title: task.title, label: task.label.rawValue)
         }
         
         /**
@@ -43,7 +45,12 @@ public struct Todo {
 
          - returns: An `Event` describing the mutation of an object.
          */
-        public func update(identifier: NSUUID, completed: Bool?, title: String?, label: Task.ColorLabel?) -> Sync.Event {
+        public func update(identifier: NSUUID, completed: Bool?, title: String?, label: Task.ColorLabel?) -> Sync.Event? {
+            let task = self.locateTask(identifier)
+            if task == nil {
+                return nil
+            }
+            task!.update(completed, title: title, label: label)
             return Sync.Event(update: NSUUID(), completed: completed, title: title, label: label != nil ? label!.rawValue : nil as UInt8?)
         }
 
@@ -55,8 +62,32 @@ public struct Todo {
          
          - returns: An `Event` describing the deletion of an object.
          */
-        public func remove(identifier: NSUUID) -> Sync.Event {
+        public func remove(identifier: NSUUID) -> Sync.Event? {
+            if !self.removeTask(identifier) {
+                return nil
+            }
             return Sync.Event(delete: identifier)
+        }
+        
+        private func indexOfTask(identifier: NSUUID) -> Array<Task>.Index? {
+            return self.tasks.indexOf({ $0.identifier == identifier })
+        }
+        
+        private func locateTask(identifier: NSUUID) -> Task? {
+            let indexOfTask = self.indexOfTask(identifier)
+            if indexOfTask == nil {
+                return nil
+            }
+            return self.tasks[indexOfTask!]
+        }
+        
+        private func removeTask(identifier: NSUUID) -> Bool {
+            let indexOfTask = self.indexOfTask(identifier)
+            if indexOfTask == nil {
+                return false
+            }
+            self.tasks.removeAtIndex(indexOfTask!)
+            return true
         }
         
     }
@@ -84,6 +115,18 @@ public struct Todo {
             self.completed = completed
             self.title = title
             self.label = label
+        }
+        
+        public func update(completed: Bool?, title: String?, label: Task.ColorLabel?) {
+            if completed != nil {
+                self.completed = completed!
+            }
+            if title != nil {
+                self.title = title!
+            }
+            if label != nil {
+                self.label = label!
+            }
         }
         
     }

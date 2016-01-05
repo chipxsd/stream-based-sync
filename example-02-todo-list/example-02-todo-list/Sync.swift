@@ -56,5 +56,25 @@ public struct Sync {
         }
         
     }
+    
+    public class Stream: NSObject {
+        
+        /// Last known sequence value received from the server.
+        public private(set) var latestSeq: Int = 0
+        
+        /// Collection of all events known to client (sent and received).
+        public private(set) var publishedEvents: Array<Event> = []
+        
+        /// Collection of all queued events meant for publication.
+        /// This collection is drained as events get published.
+        public private(set) var queuedEvents: Array<Event> = []
+        
+        /// A method that talks to the transport layer and in
+        /// in charge of publishing the `Events` onto the network stream.
+        public func publish(event: Event) {
+            
+        }
+        
+    }
 
 }

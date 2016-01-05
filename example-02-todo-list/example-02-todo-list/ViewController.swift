@@ -19,6 +19,13 @@ class ViewController: UIViewController {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
+    
+    func test() {
+        let todoList = Todo.List()
+        let task = Todo.Task(identifier: NSUUID(), completed: false, title: "Buy Milk", label: Todo.Task.ColorLabel.None)
+        let event = todoList.remove(task.identifier)
+        print("event '\(event)", event)
+    }
 
 
 }
