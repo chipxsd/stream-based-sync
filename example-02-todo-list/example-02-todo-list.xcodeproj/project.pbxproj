@@ -13,6 +13,7 @@
 		D026CC381C3B55610081FEE9 /* Sync.swift in Sources */ = {isa = PBXBuildFile; fileRef = D049E5641C38A85200EE75CA /* Sync.swift */; };
 		D026CC3A1C3CE0450081FEE9 /* Transport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D026CC391C3CE0450081FEE9 /* Transport.swift */; };
 		D026CC3C1C3CE8380081FEE9 /* SyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D026CC3B1C3CE8380081FEE9 /* SyncTests.swift */; };
+		D036810D1C3DAC3B00A97DE6 /* Transport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D026CC391C3CE0450081FEE9 /* Transport.swift */; };
 		D049E5651C38A85200EE75CA /* Sync.swift in Sources */ = {isa = PBXBuildFile; fileRef = D049E5641C38A85200EE75CA /* Sync.swift */; };
 		D05A90DF1C38886D005393C7 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05A90DE1C38886D005393C7 /* AppDelegate.swift */; };
 		D05A90E11C38886D005393C7 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05A90E01C38886D005393C7 /* ViewController.swift */; };
@@ -300,6 +301,7 @@
 			files = (
 				D026CC371C3B555F0081FEE9 /* TodoList.swift in Sources */,
 				D026CC381C3B55610081FEE9 /* Sync.swift in Sources */,
+				D036810D1C3DAC3B00A97DE6 /* Transport.swift in Sources */,
 				D026CC3C1C3CE8380081FEE9 /* SyncTests.swift in Sources */,
 				D026CC361C3B55360081FEE9 /* TodoListTests.swift in Sources */,
 			);

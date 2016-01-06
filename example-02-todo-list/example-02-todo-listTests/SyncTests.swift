@@ -67,12 +67,6 @@ class SyncTests: XCTestCase {
         let identifier = NSUUID()
         let eventInsert = Sync.Event(insert: identifier, completed: false, title: "test", label: 83)
         let dictionaryFromEventInsert = eventInsert.toDictionary()
-//        expect(dictionaryFromEvent["type"]).toNot(beNil())
-//        expect(dictionaryFromEvent["identifier"]).toNot(beNil())
-//        expect(dictionaryFromEvent["completed"]).toNot(beNil())
-//        expect(dictionaryFromEvent["title"]).toNot(beNil())
-//        expect(dictionaryFromEvent["label"]).toNot(beNil())
-        
         expect(dictionaryFromEventInsert["type"] as? Int).to(equal(0))
         expect(dictionaryFromEventInsert["identifier"] as? String).to(equal(identifier.UUIDString))
         expect(dictionaryFromEventInsert["completed"] as? Bool).to(equal(false))
@@ -86,5 +80,17 @@ class SyncTests: XCTestCase {
         expect(dictionaryFromEventDelete["completed"] as? Bool).to(beNil())
         expect(dictionaryFromEventDelete["title"] as? String).to(beNil())
         expect(dictionaryFromEventDelete["label"] as? Int).to(beNil())
+    }
+    
+    func testStreamInitialization() {
+        let stream = Sync.Stream.init(fromDictionary: [ "latestSeq": 83 ])
+        expect(stream.latestSeq).to(equal(83))
+    }
+    
+    func testStreamToDictionary() {
+        let stream = Sync.Stream.init()
+        stream.latestSeq = 83
+        let dictionaryFromStream = stream.toDictionary()
+        expect(dictionaryFromStream["latestSeq"] as? Int).to(equal(83))
     }
 }

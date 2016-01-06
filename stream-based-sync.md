@@ -764,6 +764,8 @@ how else are we going to send and receive the events?
 ```swift
 public struct Sync {
     public class Client: NSObject {
+        /// Instance of the Stream object, where we keep the stream information.
+        public private(set) var stream: Stream = Stream()
         // Instance of the transport layer.
         public private(set) var transport: Transport
         // Instance to the app model.

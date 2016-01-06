@@ -37,19 +37,22 @@ public protocol OutboundEventReceiver: class {
 }
 
 public struct Sync {
-    public class Client: NSObject, OutboundEventReceiver, Trasportable {
+    public class Client: NSObject, OutboundEventReceiver, TransportDelegate {
+        /// Instance of the Stream object, where we keep the stream information.
+        public private(set) var stream: Stream = Stream()
+    
+        /// Instance of the transport layer.
+        public private(set) var transport: Transport
+    
+        /// Instance of the model reconciler.
+        public private(set) var modelReconciler: ModelReconciler
+        
         /// Collection of all events known to client (sent and received).
         public private(set) var publishedEvents: Array<Event> = []
         
         /// Collection of all queued events meant for publication.
         /// This collection is drained as events get published.
         public private(set) var queuedEvents: Array<Event> = []
-        
-        /// Instance of the transport layer.
-        public private(set) var transport: Transport
-        
-        /// Instance of the model reconciler.
-        public private(set) var modelReconciler: ModelReconciler
         
         init(transport: Transport, modelReconciler: ModelReconciler) {
             self.transport = transport
@@ -65,9 +68,19 @@ public struct Sync {
         public func transport(transport: Transport, didReceiveObject object: Serializable) {
             if let event = object as? Event {
                 self.modelReconciler.apply([event])
+            } else if let stream = object as? Stream {
+                self.stream.latestSeq = stream.latestSeq
             } else {
                 // unsupported object
             }
+        }
+        
+        public func transportDidConnect(transport: Transport) {
+            
+        }
+        
+        public func transportDidDisconnect(transport: Transport) {
+            
         }
         
         /* Private methods */
@@ -78,6 +91,11 @@ public struct Sync {
         /// A method that talks to the transport layer and in
         /// in charge of publishing the `Events` onto the network stream.
         private func publish(event: Event) -> Bool {
+            if (!self.transport.isConnected) {
+                // Exit early, in case client doesn't have the connection
+                // to the server.
+                return false
+            }
             // implement event publication logic here
             return true
         }
@@ -85,8 +103,12 @@ public struct Sync {
     
     public class Stream: NSObject, Serializable {
         /// Last known sequence value received from the server.
-        public private(set) var latestSeq: Int = 0
-        
+        public var latestSeq: Int = 0
+
+        override init() {
+            self.latestSeq = 0
+        }
+
         public required init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
             self.latestSeq = dictionary["latestSeq"] as! Int
         }
