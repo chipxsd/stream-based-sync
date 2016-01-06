@@ -756,9 +756,31 @@ checkmark next to the item }
 }
 ```
 
+#### 3.2.3 Example (To-do List Transport)
+
+Of course, our synchronization logic also needs an access to the transport,
+how else are we going to send and receive the events?
+
+```swift
+public struct Sync {
+    public class Client: NSObject {
+        // Instance of the transport layer.
+        public private(set) var transport: Transport
+        // Instance to the app model.
+        public private(set) var todoList: Todo.List
+
+        // Method for publishing events.
+        private func publish(event: Event) -> Bool
+
+        // Delegate method for handling incoming events.
+        public func transport(transport: Transport, didReceiveObject object: Event)
+    }
+}
+```
+
 ### 3.3 Let the Streaming Begin
 
-We now have an idea, how events transmitted on a stream look like. Client
+We now have an idea, how events transmitted to a stream look like. Client
 generating the events sends them to the server, then server's responsibility
 is to broadcast those exact changes to other peers. These events are
 received by all active clients, and as long as the clients are
@@ -886,10 +908,6 @@ public struct Sync {
   public class Stream: NSObject {
       /// Last known sequence value received from the server.
       public private(set) var latestSeq: Int = 0
-
-      /// A method that talks to the transport layer and in
-      /// in charge of publishing the `Sync.Events` onto the network stream.
-      public func publish(event: Event) -> Bool
   }
 }
 ```
@@ -1106,7 +1124,7 @@ stream, so that the other clients can receive them.
 
 ```swift
 // Sends the event to the stream over the network.
-self.stream.publish(event)
+self.syncClient.publish(event)
 ```
 
 ### 4.2 Inbound Reconciliation
@@ -1155,15 +1173,15 @@ See for yourself:
 ```swift
 // Creating tasks
 let event = self.todoList.create( ... )
-self.stream.publish(event)
+self.syncClient.publish(event)
 
 // Updating tasks
 let event = self.todoList.update( ... )
-self.stream.publish(event)
+self.syncClient.publish(event)
 
 // Removing tasks
 let event = self.todoList.remove( ... )
-self.stream.publish(event)
+self.syncClient.publish(event)
 ```
 
 One way to refactor the code would be to extract the model manipulation
@@ -1210,25 +1228,28 @@ second anti-pattern.
 ```swift
 public protocol ModelReconciler: class {
     /**
-     Applies events from the Array onto the model in the order they're
-     stored in the array.
+     Applies the event onto the model.
 
-     - parameter events: An array of `Sync.Event` instances.
+     - parameter event: An instance of the `Event` that will be applied
+                 onto the model.
 
      - returns: `true` in case the event was successfully applied onto the model
                 otherwise `false`.
      */
-    func apply(events: Array<Sync.Event>) -> Bool
+    func apply(event: Sync.Event) -> Bool
 }
 
 public protocol OutboundEventReceiver: class {
+    /// Instance of the model reconciler.
+    var modelReconciler: ModelReconciler { get }
+
     /**
      Notifies the receiver that a new event has been created by the model
      reconciler.
 
      - parameter reconciler: The instance of the model reconciler making
                              performing the invocation of this method.
-     - parameter event:      The `Sync.Event` instance created.
+     - parameter event:      The `Event` instance created.
      */
     func reconciler(reconciler: ModelReconciler, didCreateEvent event: Sync.Event)
 }
@@ -1237,7 +1258,7 @@ public protocol OutboundEventReceiver: class {
 With these two protocols, the synchronization logic doesn't need to know
 anything about the `Todo.List` type, and whatever owns the `Todo.List`
 instance, doesn't need to be responsible for taking the vended `Sync.Events`
-and passing them to the `Sync.Stream.publish(event)` for publication.
+and passing them to the `Sync.Client.publish(event)` for publication.
 
 Here's the implementation (I'll strip out the method comments, to make
 it a little shorter):
@@ -1263,17 +1284,7 @@ public class List: NSObject, ModelReconciler {
     }
 
     // ModelReconciler delegate method implementation    
-    public func apply(events: Array<Sync.Event>) -> Bool {
-        for event in events {
-            let success = self.apply(event)
-            if !success {
-                return false
-            }
-        }
-        return true
-    }
-
-    private func apply(event: Sync.Event) -> Bool {
+    public func apply(event: Sync.Event) -> Bool {
         // implementation from before
     }
 
@@ -1290,14 +1301,14 @@ public class List: NSObject, ModelReconciler {
 }
 ```
 
-On the synchronization logic side, `Sync.Stream` just has to implement
+On the synchronization logic side, `Sync.Client` just has to implement
 the method dictated by the `OutboundEventReceiver` protocol, this
 frees the `Todo.List` instance owner from responsibility of sending the event
 to `Sync.Stream`.
 
 ```swift
 public struct Sync {
-    public class Stream: NSObject, OutboundEventReceiver {
+    public class Client: NSObject, OutboundEventReceiver {
         // Delegate method implementation.
         public func reconciler(reconciler: ModelReconciler, didCreateEvent event: Sync.Event) {
             self.publish(event)

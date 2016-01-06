@@ -22,6 +22,9 @@ public protocol ModelReconciler: class {
 }
 
 public protocol OutboundEventReceiver: class {
+    /// Instance of the model reconciler.
+    var modelReconciler: ModelReconciler { get }
+    
     /**
      Notifies the receiver that a new event has been created by the model
      reconciler.
@@ -33,15 +36,8 @@ public protocol OutboundEventReceiver: class {
     func reconciler(reconciler: ModelReconciler, didCreateEvent event: Sync.Event)
 }
 
-public protocol Trasportable: class {
-    var transport: Transport { get }
-}
-
 public struct Sync {
-    public class Stream: NSObject, OutboundEventReceiver, Trasportable {
-        /// Last known sequence value received from the server.
-        public private(set) var latestSeq: Int = 0
-        
+    public class Client: NSObject, OutboundEventReceiver, Trasportable {
         /// Collection of all events known to client (sent and received).
         public private(set) var publishedEvents: Array<Event> = []
         
@@ -49,16 +45,32 @@ public struct Sync {
         /// This collection is drained as events get published.
         public private(set) var queuedEvents: Array<Event> = []
         
+        /// Instance of the transport layer.
         public private(set) var transport: Transport
         
-        init(transport: Transport) {
+        /// Instance of the model reconciler.
+        public private(set) var modelReconciler: ModelReconciler
+        
+        init(transport: Transport, modelReconciler: ModelReconciler) {
             self.transport = transport
+            self.modelReconciler = modelReconciler;
         }
         
+        /* Reconciler protocol implementation */
         public func reconciler(reconciler: ModelReconciler, didCreateEvent event: Sync.Event) {
             self.publish(event)
         }
         
+        /* Transportable protocol implementation */
+        public func transport(transport: Transport, didReceiveObject object: Serializable) {
+            if let event = object as? Event {
+                self.modelReconciler.apply([event])
+            } else {
+                // unsupported object
+            }
+        }
+        
+        /* Private methods */
         private func enqueue(event: Event) {
             self.queuedEvents.append(event)
         }
@@ -71,7 +83,23 @@ public struct Sync {
         }
     }
     
-    public class Event: NSObject {
+    public class Stream: NSObject, Serializable {
+        /// Last known sequence value received from the server.
+        public private(set) var latestSeq: Int = 0
+        
+        public required init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
+            self.latestSeq = dictionary["latestSeq"] as! Int
+        }
+        
+        public func toDictionary() -> Dictionary<String, AnyObject>
+        {
+            var dictionary: Dictionary<String, AnyObject> = Dictionary()
+            dictionary["latestSeq"] = Int(self.latestSeq)
+            return dictionary
+        }
+    }
+    
+    public class Event: NSObject, Serializable {
         /**
          Event type describing a mutation on the model.
          */
@@ -115,7 +143,7 @@ public struct Sync {
             self.identifier = identifier
         }
         
-        init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
+        public required init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
             self.type = Sync.Event.Type(rawValue: UInt8(dictionary["type"] as! Int))!
             self.identifier = NSUUID(UUIDString: dictionary["identifier"] as! String)!
             self.completed = dictionary["completed"] as! Bool?
