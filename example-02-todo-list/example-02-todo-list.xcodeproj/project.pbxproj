@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		2C836651E14224D6ECB3E253 /* Pods.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ED417A92F5A22FCC6024934C /* Pods.framework */; };
+		D010C3591C3DD0F6004A7D02 /* TransportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D036810E1C3DBEDF00A97DE6 /* TransportTests.swift */; };
 		D026CC361C3B55360081FEE9 /* TodoListTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D026CC351C3B55360081FEE9 /* TodoListTests.swift */; };
 		D026CC371C3B555F0081FEE9 /* TodoList.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05A90FE1C3888F4005393C7 /* TodoList.swift */; };
 		D026CC381C3B55610081FEE9 /* Sync.swift in Sources */ = {isa = PBXBuildFile; fileRef = D049E5641C38A85200EE75CA /* Sync.swift */; };
@@ -21,6 +22,7 @@
 		D05A90E61C38886D005393C7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D05A90E51C38886D005393C7 /* Assets.xcassets */; };
 		D05A90E91C38886D005393C7 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D05A90E71C38886D005393C7 /* LaunchScreen.storyboard */; };
 		D05A90FF1C3888F4005393C7 /* TodoList.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05A90FE1C3888F4005393C7 /* TodoList.swift */; };
+		D0DA84191C3DD9A300A7A8C5 /* TestMocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DA84181C3DD9A300A7A8C5 /* TestMocks.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -38,6 +40,7 @@
 		D026CC351C3B55360081FEE9 /* TodoListTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TodoListTests.swift; sourceTree = "<group>"; };
 		D026CC391C3CE0450081FEE9 /* Transport.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Transport.swift; sourceTree = "<group>"; };
 		D026CC3B1C3CE8380081FEE9 /* SyncTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SyncTests.swift; sourceTree = "<group>"; };
+		D036810E1C3DBEDF00A97DE6 /* TransportTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TransportTests.swift; sourceTree = "<group>"; };
 		D049E5641C38A85200EE75CA /* Sync.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Sync.swift; sourceTree = "<group>"; };
 		D05A90DB1C38886D005393C7 /* example-02-todo-list.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "example-02-todo-list.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D05A90DE1C38886D005393C7 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -49,6 +52,7 @@
 		D05A90EF1C38886D005393C7 /* example-02-todo-listTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "example-02-todo-listTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D05A90F51C38886D005393C7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D05A90FE1C3888F4005393C7 /* TodoList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TodoList.swift; sourceTree = "<group>"; };
+		D0DA84181C3DD9A300A7A8C5 /* TestMocks.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestMocks.swift; sourceTree = "<group>"; };
 		ED417A92F5A22FCC6024934C /* Pods.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F31AC9F2D97CAC7BA27D16EA /* Pods.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = Pods.release.xcconfig; path = "Pods/Target Support Files/Pods/Pods.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -130,6 +134,8 @@
 			children = (
 				D026CC351C3B55360081FEE9 /* TodoListTests.swift */,
 				D026CC3B1C3CE8380081FEE9 /* SyncTests.swift */,
+				D036810E1C3DBEDF00A97DE6 /* TransportTests.swift */,
+				D0DA84181C3DD9A300A7A8C5 /* TestMocks.swift */,
 				D05A90F51C38886D005393C7 /* Info.plist */,
 			);
 			path = "example-02-todo-listTests";
@@ -302,8 +308,10 @@
 				D026CC371C3B555F0081FEE9 /* TodoList.swift in Sources */,
 				D026CC381C3B55610081FEE9 /* Sync.swift in Sources */,
 				D036810D1C3DAC3B00A97DE6 /* Transport.swift in Sources */,
+				D010C3591C3DD0F6004A7D02 /* TransportTests.swift in Sources */,
 				D026CC3C1C3CE8380081FEE9 /* SyncTests.swift in Sources */,
 				D026CC361C3B55360081FEE9 /* TodoListTests.swift in Sources */,
+				D0DA84191C3DD9A300A7A8C5 /* TestMocks.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -52,24 +52,28 @@ public protocol Serializable: class {
 
 public class Transport: NSObject, WebSocketDelegate {
     /// The Starscream `WebSocket` client.
-    private var webSocketClient: WebSocket
-    
-    /// Instance variable indicating the connection state.
-    public var isConnected: Bool = false
+    internal var webSocketClient: WebSocket
     
     /// The URL where the transport should connect to, set at init.
-    public private(set) var hostURL: NSURL
+    public internal(set) var hostURL: NSURL
     
     /// Weak reference to the delegate (transport callback receiver).
     public weak var delegate: TransportDelegate?
     
     /// A lookup table of de-serializable objects names and types.
-    public var serializableClassTypes: Dictionary<String, Serializable.Type>
+    public var serializableClassRootKeys: Dictionary<String, Serializable.Type>
     
-    init(hostURL: NSURL, modelReconciler: ModelReconciler, serializableClassTypes: Dictionary<String, Serializable.Type>) {
+    /// Instance variable indicating the connection state.
+    public var isConnected: Bool {
+        get {
+            return self.webSocketClient.isConnected
+        }
+    }
+    
+    init(hostURL: NSURL, serializableClassRootKeys: Dictionary<String, Serializable.Type>) {
         self.webSocketClient = WebSocket(url: hostURL)
         self.hostURL = hostURL
-        self.serializableClassTypes = serializableClassTypes
+        self.serializableClassRootKeys = serializableClassRootKeys
         super.init()
         self.webSocketClient.delegate = self
     }
@@ -82,9 +86,9 @@ public class Transport: NSObject, WebSocketDelegate {
         self.webSocketClient.disconnect()
     }
     
-    public func send(object: Serializable)
-    {
-        let JSONObject = object.toDictionary()
+    public func send(object: Serializable) {
+        let serializedObject = object.toDictionary()
+        let JSONObject: Dictionary<String, AnyObject> = [ self.rootKey(object.dynamicType)!: serializedObject ]
         var JSONString: String?
         do {
             let JSONData = try NSJSONSerialization.dataWithJSONObject(JSONObject, options: NSJSONWritingOptions.PrettyPrinted)
@@ -119,10 +123,10 @@ public class Transport: NSObject, WebSocketDelegate {
             return
         }
         // Check if the JSON object is a deserializable structure.
-        for className in self.serializableClassTypes.keys {
-            let subDictionary = JSONObject![className] as? Dictionary<String, AnyObject>
+        for rootKey in self.serializableClassRootKeys.keys {
+            let subDictionary = JSONObject![rootKey] as? Dictionary<String, AnyObject>
             if subDictionary != nil {
-                let classType = self.serializableClassTypes[className]
+                let classType = self.serializableClassRootKeys[rootKey]
                 let deserializedObject = classType?.init(fromDictionary: subDictionary!)
                 if deserializedObject != nil {
                     self.delegate?.transport(self, didReceiveObject: deserializedObject!)
@@ -133,5 +137,14 @@ public class Transport: NSObject, WebSocketDelegate {
     
     public func websocketDidReceiveData(socket: WebSocket, data: NSData) {
         // no op
+    }
+    
+    private func rootKey(type: Serializable.Type) -> String? {
+        for rootKey in self.serializableClassRootKeys.keys {
+            if (self.serializableClassRootKeys[rootKey] == type) {
+                return rootKey
+            }
+        }
+        return nil
     }
 }
