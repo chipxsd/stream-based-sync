@@ -1047,7 +1047,7 @@ public class List: NSObject {
 
 Let's see how these methods play out:
 
-#### Creating Tasks
+#### Creating Todo.Tasks
 
 Telling the to-do `Todo.List` object to create and put a new `Todo.Task` on
 list will now also vend an `Sync.Event`:
@@ -1066,7 +1066,7 @@ print("event: '\(event)", event)
 // }
 ```
 
-#### Updating Tasks
+#### Updating Todo.Tasks
 
 Invoking the `update(identifier:completed:title:label:)` method on `Todo.List`
 instance will give us an `Sync.Event` of type `update`:
@@ -1083,7 +1083,7 @@ print("event: '\(event)", event)
 // }
 ```
 
-#### Removing Tasks
+#### Removing Todo.Tasks
 
 And removing a task from a `Todo.List` is no different:
 
@@ -1098,7 +1098,7 @@ print("event: '\(event)", event)
 // }
 ```
 
-#### Publishing Events
+#### Publishing Sync.Events
 
 And this is how we turn model mutation into events. The only thing that's left
 for these `Sync.Events` is shipping them off to the server and on to the
