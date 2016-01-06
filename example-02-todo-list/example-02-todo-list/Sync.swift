@@ -49,10 +49,15 @@ public struct Sync {
             self.publish(event)
         }
         
+        private func enqueue(event: Event) {
+            self.queuedEvents.append(event)
+        }
+        
         /// A method that talks to the transport layer and in
         /// in charge of publishing the `Events` onto the network stream.
-        private func publish(event: Event) {
+        private func publish(event: Event) -> Bool {
             // implement event publication logic here
+            return true
         }
     }
     
@@ -99,6 +104,5 @@ public struct Sync {
             self.type = Type.Delete
             self.identifier = identifier
         }
-        
     }
 }
