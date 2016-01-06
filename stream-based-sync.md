@@ -889,7 +889,7 @@ public struct Sync {
 
       /// A method that talks to the transport layer and in
       /// in charge of publishing the `Sync.Events` onto the network stream.
-      public func publish(event: Event)
+      public func publish(event: Event) -> Bool
   }
 }
 ```
@@ -1308,17 +1308,17 @@ public struct Sync {
 
 ### 4.3 Offline support
 
-Sync logic (`Sunc.Stream.Publish()`) might be sending the events to void,
-in case the transport layer doesn't have any connection to the server,
-and when clients miss relevant events, they get in an out-of-sync state.
+Sync logic (`Sync.Stream.Publish()`) might be sending the events to void,
+in case the connection to server's down. And when clients miss relevant
+events, they get in an out-of-sync state.
 
-One way to avoid this is by not allowing any user actions on the `Todo.List`
+One way to avoid this is by not allowing any user action on the `Todo.List`
 data model, but this completely disables the use of the app while user
 doesn't have connectivity.
 
 We have to make sure those events get published at all costs. Instead of
 trying to publish the events directly, we can put them into a queue that
-gets drained with successful publication.
+gets drained with publication.
 
 ![fig.24 - Queuing Outbound Events](./images/fig-24-Queuing-Outbound-Events.png "fig. 24 - Queuing Outbound Events")
 
@@ -1341,6 +1341,7 @@ Todo:
 
 * [ ] Explain how two (or more) parties can mutate the same object at the
       time.
+* [ ] Example with mutation after deletion.
 * [ ] Most basic conflict resolution is: last writer wins.
 
 ## 5. Order of Events
