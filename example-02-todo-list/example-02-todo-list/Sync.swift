@@ -33,8 +33,12 @@ public protocol OutboundEventReceiver: class {
     func reconciler(reconciler: ModelReconciler, didCreateEvent event: Sync.Event)
 }
 
+public protocol Trasportable: class {
+    var transport: Transport { get }
+}
+
 public struct Sync {
-    public class Stream: NSObject, OutboundEventReceiver {
+    public class Stream: NSObject, OutboundEventReceiver, Trasportable {
         /// Last known sequence value received from the server.
         public private(set) var latestSeq: Int = 0
         
@@ -44,6 +48,12 @@ public struct Sync {
         /// Collection of all queued events meant for publication.
         /// This collection is drained as events get published.
         public private(set) var queuedEvents: Array<Event> = []
+        
+        public private(set) var transport: Transport
+        
+        init(transport: Transport) {
+            self.transport = transport
+        }
         
         public func reconciler(reconciler: ModelReconciler, didCreateEvent event: Sync.Event) {
             self.publish(event)
@@ -103,6 +113,31 @@ public struct Sync {
         init(delete identifier: NSUUID) {
             self.type = Type.Delete
             self.identifier = identifier
+        }
+        
+        init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
+            self.type = Sync.Event.Type(rawValue: UInt8(dictionary["type"] as! Int))!
+            self.identifier = NSUUID(UUIDString: dictionary["identifier"] as! String)!
+            self.completed = dictionary["completed"] as! Bool?
+            self.title = dictionary["title"] as! String?
+            self.label = dictionary["label"] != nil ? UInt8((dictionary["label"] as! Int?)!) : nil
+        }
+        
+        public func toDictionary() -> Dictionary<String, AnyObject>
+        {
+            var dictionary: Dictionary<String, AnyObject> = Dictionary()
+            dictionary["type"] = Int(self.type.rawValue)
+            dictionary["identifier"] = self.identifier.UUIDString
+            if self.completed != nil {
+                dictionary["completed"] = self.completed!
+            }
+            if self.title != nil {
+                dictionary["title"] = self.title!
+            }
+            if self.label != nil {
+                dictionary["label"] = Int(self.label!)
+            }
+            return dictionary
         }
     }
 }

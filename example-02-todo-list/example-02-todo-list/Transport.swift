@@ -8,6 +8,6 @@
 
 import Foundation
 
-class Transport: NSObject {
+public class Transport: NSObject {
     
 }
