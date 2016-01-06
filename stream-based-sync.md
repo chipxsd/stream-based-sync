@@ -1243,9 +1243,10 @@ public protocol OutboundEventReceiver: class {
 With these two protocols, the synchronization logic doesn't need to know
 anything about the `Todo.List` type, and whatever owns the `Todo.List`
 instance, doesn't need to be responsible for taking the vended `Sync.Events`
-and passing them to the transport layer.
+and passing them to the `Sync.Stream.publish(event)` for publication.
 
-Here's the implementation (I'll strip out the comments, to make it shorter):
+Here's the implementation (I'll strip out the method comments, to make
+it a little shorter):
 
 ```swift
 public class List: NSObject, ModelReconciler {
@@ -1279,7 +1280,7 @@ public class List: NSObject, ModelReconciler {
     }
 
     private func apply(event: Sync.Event) -> Bool {
-        // impementation from before
+        // implementation from before
     }
 
     private func applyAndNotify(event: Sync.Event) -> Bool {
@@ -1295,9 +1296,21 @@ public class List: NSObject, ModelReconciler {
 }
 ```
 
-Todo:
+On the synchronization logic side, `Sync.Stream` just has to implement
+the method dictated by the `OutboundEventReceiver` protocol, this
+frees the `Todo.List` instance owner from responsibility of sending the event
+to `Sync.Stream`.
 
-* [ ] Taking mutation data from events and applying it on the model.
+```swift
+public struct Sync {
+    public class Stream: NSObject, OutboundEventReceiver {
+        // Delegate method implementation.
+        public func reconciler(reconciler: ModelReconciler, didCreateEvent event: Sync.Event) {
+            self.publish(event)
+        }
+    }
+}
+```
 
 ### 4.3 Reducing the Edit Distance
 

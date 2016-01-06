@@ -45,14 +45,14 @@ public struct Sync {
         /// This collection is drained as events get published.
         public private(set) var queuedEvents: Array<Event> = []
         
-        /// A method that talks to the transport layer and in
-        /// in charge of publishing the `Events` onto the network stream.
-        public func publish(event: Event) {
-            
+        public func reconciler(reconciler: ModelReconciler, didCreateEvent event: Sync.Event) {
+            self.publish(event)
         }
         
-        public func reconciler(reconciler: ModelReconciler, didCreateEvent event: Sync.Event) {
-            // implement event queueing logic here
+        /// A method that talks to the transport layer and in
+        /// in charge of publishing the `Events` onto the network stream.
+        private func publish(event: Event) {
+            // implement event publication logic here
         }
     }
     
