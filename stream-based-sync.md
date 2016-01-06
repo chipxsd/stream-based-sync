@@ -582,7 +582,7 @@ remove them from your library, when you're out of the network conectivity?
 
 ![fig.12 - Offline Support](./images/fig-12-offline-support.png "fig. 12 - Offline Support")
 
-{ fig.12 - An globe with a gian cross mark over it }
+{ fig.12 - A globe with a giant cross mark over it }
 
 ### 3.2 Stream of Events
 
@@ -887,12 +887,6 @@ public struct Sync {
       /// Last known sequence value received from the server.
       public private(set) var latestSeq: Int = 0
 
-      /// All events known to client (sent and received).
-      public private(set) var publishedEvents: Array<Event> = []
-
-      /// All queued events meant for publication.
-      public private(set) var queuedEvents: Array<Event> = []
-
       /// A method that talks to the transport layer and in
       /// in charge of publishing the `Sync.Events` onto the network stream.
       public func publish(event: Event)
@@ -1121,7 +1115,7 @@ What do other clients do with `Sync.Events`, once they receive them from
 the server? These `Sync.Events` have to be turned back into object. It's a
 process we can name _"Inbound Reconciliation"_.
 
-![fig.23 - Inbound Reconciliation](./images/fig-22-inbound-reconciliation.png "fig. 22 - Inbound Reconciliation")
+![fig.23 - Inbound Reconciliation](./images/fig-23-inbound-reconciliation.png "fig. 23 - Inbound Reconciliation")
 
 { fig.23 - same as figure 20. but mirrored; server on the left, sending events
 drawn in the middle, turning into a checklist }
@@ -1183,7 +1177,7 @@ in charge of model manipulation.
 
  - parameter event: A synced event to apply on the model.
 
- - returns: Returns `true`, if the operation was successfull;
+ - returns: Returns `true`, if the operation was successful;
             in case of a conflict, the method returns `false`.
  */
 private func apply(event: Sync.Event) -> Bool {
@@ -1312,13 +1306,36 @@ public struct Sync {
 }
 ```
 
-### 4.3 Reducing the Edit Distance
+### 4.3 Offline support
+
+Sync logic (`Sunc.Stream.Publish()`) might be sending the events to void,
+in case the transport layer doesn't have any connection to the server,
+and when clients miss relevant events, they get in an out-of-sync state.
+
+One way to avoid this is by not allowing any user actions on the `Todo.List`
+data model, but this completely disables the use of the app while user
+doesn't have connectivity.
+
+We have to make sure those events get published at all costs. Instead of
+trying to publish the events directly, we can put them into a queue that
+gets drained with successful publication.
+
+![fig.24 - Queuing Outbound Events](./images/fig-24-Queuing-Outbound-Events.png "fig. 24 - Queuing Outbound Events")
+
+{ fig.24 - Draw a queue between checklist and stream }
+
+* [ ] Publishing events with a disconnected client is like sending generated
+      events into void.
+* [ ] For offline support, introduce a queue between event vending and
+      publication logic.
+
+### 4.4 Reducing the Edit Distance
 
 Todo:
 
 * [ ] How to maintain a short edit distance during reconciliation.
 
-### 4.4 Conflict Resolution
+### 4.5 Conflict Resolution
 
 Todo:
 

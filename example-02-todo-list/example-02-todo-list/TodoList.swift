@@ -78,7 +78,7 @@ public struct Todo {
          
          - parameter event: A synced event to apply on the model.
          
-         - returns: Returns `true`, if the operation was successfull;
+         - returns: Returns `true`, if the operation was successful;
          in case of a conflict, the method returns `false`.
          */
         private func apply(event: Sync.Event) -> Bool {
