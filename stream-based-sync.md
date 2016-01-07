@@ -1303,10 +1303,10 @@ public class List: NSObject, ModelReconciler {
 }
 ```
 
-On the synchronization logic side, `Sync.Client` just has to implement
+On the synchronization logic side, `Sync.Client` now just has to implement
 the method dictated by the `OutboundEventReceiver` protocol, this
 frees the `Todo.List` instance owner from responsibility of sending the event
-to `Sync.Stream`.
+to `Sync.Client`.
 
 ```swift
 public struct Sync {
@@ -1321,7 +1321,7 @@ public struct Sync {
 
 ### 4.3 Offline support
 
-Sync logic (`Sync.Stream.Publish()`) might be sending the events to void,
+Sync logic (`Sync.Client.Publish()`) might be sending the events to void,
 in case the connection to server's down. And when clients miss relevant
 events, they get in an out-of-sync state.
 
