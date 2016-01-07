@@ -54,6 +54,9 @@ public struct Sync {
         /// This collection is drained as events get published.
         public private(set) var queuedEvents: Array<Event> = []
         
+        /// Serial dispatch queue guarding the `self.queuedEvents` collection.
+        private var publicationQueue = dispatch_queue_create("sync.client.publicationSerialQueue", DISPATCH_QUEUE_SERIAL)
+        
         init(transport: Transport, modelReconciler: ModelReconciler) {
             self.transport = transport
             self.modelReconciler = modelReconciler;
@@ -61,7 +64,7 @@ public struct Sync {
         
         /* Reconciler protocol implementation */
         public func reconciler(reconciler: ModelReconciler, didCreateEvent event: Sync.Event) {
-            self.publish(event)
+            self.enqueue(event)
         }
         
         /* Transportable protocol implementation */
@@ -85,8 +88,12 @@ public struct Sync {
         
         /* Private methods */
         private func enqueue(event: Event) {
-            self.queuedEvents.append(event)
+            dispatch_sync(self.publicationQueue) { () -> Void in
+                self.queuedEvents.append(event)
+            }
         }
+        
+        private func dequeue
         
         /// A method that talks to the transport layer and in
         /// in charge of publishing the `Events` onto the network stream.
@@ -188,6 +195,69 @@ public struct Sync {
                 dictionary["label"] = Int(self.label!)
             }
             return dictionary
+        }
+    }
+    
+    public class EventInquiryRequest: NSObject, Serializable {
+        public private(set) var seqs: Array<Int>
+        
+        init(seqs: Array<Int>) {
+            self.seqs = seqs
+        }
+        
+        public required init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
+            self.seqs = dictionary["seqs"] as! Array<Int>
+        }
+        
+        public func toDictionary() -> Dictionary<String, AnyObject> {
+            return ["seqs": self.seqs]
+        }
+    }
+    
+    public class EventPublicationRequest: NSObject, Serializable {
+        public private(set) var events: Array<Event>
+        public private(set) var requestID = NSUUID()
+        
+        init(events: Array<Event>, requestID: NSUUID) {
+            self.events = events
+            self.requestID = requestID
+        }
+        
+        public required init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
+            self.events = Array<Event>()
+            let dictionaryOfEvents = dictionary["events"] as! Array<Dictionary<String, AnyObject>>
+            for serializedEvent in dictionaryOfEvents {
+                let event = Event.init(fromDictionary: serializedEvent)
+                self.events.append(event)
+            }
+            self.requestID = NSUUID(UUIDString: dictionary["requestID"] as! String)!
+        }
+        
+        public func toDictionary() -> Dictionary<String, AnyObject> {
+            var serializedEvents = Array<Dictionary<String, AnyObject>>();
+            for event in self.events {
+                serializedEvents.append(event.toDictionary())
+            }
+            return [ "events": serializedEvents, "requestID": self.requestID ]
+        }
+    }
+    
+    public class EventPublicationResponse: NSObject, Serializable {
+        public private(set) var eventStatuses: Array<Bool>
+        public private(set) var requestID = NSUUID()
+
+        init(eventStatuses: Array<Bool>, requestID: NSUUID) {
+            self.eventStatuses = eventStatuses
+            self.requestID = requestID
+        }
+        
+        public required init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
+            self.eventStatuses = dictionary["eventStatuses"] as! Array<Bool>
+            self.requestID = NSUUID(UUIDString: dictionary["requestID"] as! String)!
+        }
+        
+        public func toDictionary() -> Dictionary<String, AnyObject> {
+            return [ "events": self.eventStatuses, "requestID": self.requestID ]
         }
     }
 }
