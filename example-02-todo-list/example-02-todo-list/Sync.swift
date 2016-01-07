@@ -55,8 +55,11 @@ public struct Sync {
         public private(set) var queuedEvents: Array<Event> = []
         
         /// Serial dispatch queue guarding the `self.queuedEvents` collection.
-        private var publicationQueue = dispatch_queue_create("sync.client.publicationSerialQueue", DISPATCH_QUEUE_SERIAL)
+        private var queuedEventsQueue = dispatch_queue_create("sync.client.queuedEventsQueue", DISPATCH_QUEUE_SERIAL)
         
+        /// Concurrent queue for non-blocking event publication
+        private var publicationQueue = dispatch_queue_create("sync.client.publicationConcurrentQueue", DISPATCH_QUEUE_CONCURRENT)
+
         init(transport: Transport, modelReconciler: ModelReconciler) {
             self.transport = transport
             self.modelReconciler = modelReconciler;
@@ -88,8 +91,10 @@ public struct Sync {
         
         /* Private methods */
         private func enqueue(event: Event) {
-            dispatch_sync(self.publicationQueue) { () -> Void in
-                self.queuedEvents.append(event)
+            dispatch_async(self.queuedEventsQueue) { () -> Void in
+                dispatch_sync(self.publicationQueue) { () -> Void in
+                    self.queuedEvents.append(event)
+                }
             }
         }
         
@@ -101,9 +106,21 @@ public struct Sync {
                 // to the server.
                 return false
             }
-            let eventPublicationRequest = EventPublicationRequest(events: self.queuedEvents, identifier: NSUUID())
-            self.transport.send(eventPublicationRequest) { (success: Bool, response: Transport.RPCObject?) -> Void in
-                // Handle your response here...
+            
+            dispatch_sync(self.publicationQueue) { () -> Void in
+                let eventPublicationRequest = EventPublicationRequest(events: self.queuedEvents, identifier: NSUUID())
+                let requestSemaphore = dispatch_semaphore_create(0)
+                var eventPublicationResponse: EventPublicationResponse?
+                self.transport.send(eventPublicationRequest) { (success: Bool, response: Transport.RPCObject?) -> Void in
+                    if success {
+                        eventPublicationResponse = response as! EventPublicationResponse?
+                    }
+                }
+                dispatch_semaphore_wait(requestSemaphore, DISPATCH_TIME_FOREVER)
+
+                // Figure out, which events were successfully published, and
+                // evict them from the self.queuedEvents.
+                eventPublicationResponse?.eventStatuses.forEach({$0})
             }
             return true
         }
