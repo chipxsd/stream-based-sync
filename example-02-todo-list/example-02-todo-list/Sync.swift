@@ -93,17 +93,18 @@ public struct Sync {
             }
         }
         
-        private func dequeue
-        
         /// A method that talks to the transport layer and in
         /// in charge of publishing the `Events` onto the network stream.
-        private func publish(event: Event) -> Bool {
+        private func publishEvents() -> Bool {
             if (!self.transport.isConnected) {
                 // Exit early, in case client doesn't have the connection
                 // to the server.
                 return false
             }
-            // implement event publication logic here
+            let eventPublicationRequest = EventPublicationRequest(events: self.queuedEvents, identifier: NSUUID())
+            self.transport.send(eventPublicationRequest) { (success: Bool, response: Transport.RPCObject?) -> Void in
+                // Handle your response here...
+            }
             return true
         }
     }
@@ -214,13 +215,12 @@ public struct Sync {
         }
     }
     
-    public class EventPublicationRequest: NSObject, Serializable {
+    public class EventPublicationRequest: Transport.RPCObject {
         public private(set) var events: Array<Event>
-        public private(set) var requestID = NSUUID()
         
-        init(events: Array<Event>, requestID: NSUUID) {
+        init(events: Array<Event>, identifier: NSUUID) {
             self.events = events
-            self.requestID = requestID
+            super.init(identifier: identifier)
         }
         
         public required init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
@@ -230,34 +230,37 @@ public struct Sync {
                 let event = Event.init(fromDictionary: serializedEvent)
                 self.events.append(event)
             }
-            self.requestID = NSUUID(UUIDString: dictionary["requestID"] as! String)!
+            super.init(fromDictionary: dictionary)
         }
         
-        public func toDictionary() -> Dictionary<String, AnyObject> {
+        public override func toDictionary() -> Dictionary<String, AnyObject> {
+            var baseDictionary = super.toDictionary()
             var serializedEvents = Array<Dictionary<String, AnyObject>>();
             for event in self.events {
                 serializedEvents.append(event.toDictionary())
             }
-            return [ "events": serializedEvents, "requestID": self.requestID ]
+            baseDictionary["events"] = serializedEvents
+            return baseDictionary
         }
     }
     
-    public class EventPublicationResponse: NSObject, Serializable {
+    public class EventPublicationResponse: Transport.RPCObject {
         public private(set) var eventStatuses: Array<Bool>
-        public private(set) var requestID = NSUUID()
 
-        init(eventStatuses: Array<Bool>, requestID: NSUUID) {
+        init(eventStatuses: Array<Bool>, identifier: NSUUID) {
             self.eventStatuses = eventStatuses
-            self.requestID = requestID
+            super.init(identifier: identifier)
         }
         
         public required init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
             self.eventStatuses = dictionary["eventStatuses"] as! Array<Bool>
-            self.requestID = NSUUID(UUIDString: dictionary["requestID"] as! String)!
+            super.init(fromDictionary: dictionary)
         }
         
-        public func toDictionary() -> Dictionary<String, AnyObject> {
-            return [ "events": self.eventStatuses, "requestID": self.requestID ]
+        public override func toDictionary() -> Dictionary<String, AnyObject> {
+            var baseDictionary = super.toDictionary()
+            baseDictionary["eventStatuses"] = eventStatuses
+            return baseDictionary
         }
     }
 }

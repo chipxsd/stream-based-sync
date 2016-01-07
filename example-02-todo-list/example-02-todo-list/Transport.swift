@@ -50,6 +50,9 @@ public protocol Serializable: class {
     func toDictionary() -> Dictionary<String, AnyObject>
 }
 
+/// Convenience alias for the completion closure definition.
+public typealias RequestCompletionBlock = (success: Bool, response: Transport.RPCObject?) -> Void
+
 public class Transport: NSObject, WebSocketDelegate {
     /// The Starscream `WebSocket` client.
     internal var webSocketClient: WebSocket
@@ -62,6 +65,35 @@ public class Transport: NSObject, WebSocketDelegate {
     
     /// A lookup table of de-serializable objects names and types.
     public var serializableClassRootKeys: Dictionary<String, Serializable.Type>
+
+    /// Dictionary of requests in progress.
+    private var requestsInProgress = Dictionary<NSUUID, RPCCompletionPair>()
+    
+    private class RPCCompletionPair: NSObject {
+        var request: RPCObject
+        var completion: RequestCompletionBlock
+        init (request: RPCObject, completion: RequestCompletionBlock) {
+            self.request = request
+            self.completion = completion
+        }
+    }
+    
+    /// Base RPC structure (for requests and responses)
+    public class RPCObject: NSObject, Serializable {
+        public private(set) var identifier = NSUUID()
+        
+        init(identifier: NSUUID) {
+            self.identifier = identifier
+        }
+        
+        public required init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
+            self.identifier = NSUUID(UUIDString: dictionary["identifier"] as! String)!
+        }
+        
+        public func toDictionary() -> Dictionary<String, AnyObject> {
+            return [ "identifier": self.identifier ]
+        }
+    }
     
     /// Instance variable indicating the connection state.
     public var isConnected: Bool {
@@ -101,12 +133,20 @@ public class Transport: NSObject, WebSocketDelegate {
         }
     }
     
+    public func send(request: RPCObject, completion: RequestCompletionBlock) {
+        self.requestsInProgress[request.identifier] = RPCCompletionPair(request: request, completion: completion)
+        self.send(request)
+    }
+    
     /* WebSocketDelegate method implementation */
     public func websocketDidConnect(socket: WebSocket) {
         self.delegate?.transportDidConnect(self)
     }
     
     public func websocketDidDisconnect(socket: WebSocket, error: NSError?) {
+        // Abort all requests that were in progress.
+        self.requestsInProgress.values.forEach({ $0.completion(success: false, response: nil) })
+        self.requestsInProgress = [:]
         self.delegate?.transportDidDisconnect(self)
     }
     
@@ -126,9 +166,21 @@ public class Transport: NSObject, WebSocketDelegate {
         for rootKey in self.serializableClassRootKeys.keys {
             let subDictionary = JSONObject![rootKey] as? Dictionary<String, AnyObject>
             if subDictionary != nil {
+                // Deserialize incoming JSON dictionary
+                // to `Serializable` object instance.
                 let classType = self.serializableClassRootKeys[rootKey]
                 let deserializedObject = classType?.init(fromDictionary: subDictionary!)
-                if deserializedObject != nil {
+                if deserializedObject == nil {
+                    continue
+                }
+                
+                if let response = deserializedObject as? RPCObject {
+                    // If the deserialized object we received is a type of
+                    // RPC, it's a response to our request we made earlier.
+                    let originalRequest = self.requestsInProgress[response.identifier]
+                    originalRequest?.completion(success: true, response: response)
+                } else {
+                    // Otherwise, it's a pushed object.
                     self.delegate?.transport(self, didReceiveObject: deserializedObject!)
                 }
             }
