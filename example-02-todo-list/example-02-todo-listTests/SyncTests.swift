@@ -189,13 +189,14 @@ class SyncTests: XCTestCase {
         
         // Connect and simulate a received event
         mockTransport.connect()
-        mockTransport.mockWebSocketClient.mockReceivedText("{\n  \"event\" : {\n    \"title\" : \"test\",\n    \"completed\" : false,\n    \"label\" : 83,\n    \"identifier\" : \"\(identifier.UUIDString)\",\n    \"type\" : 0\n    \"tseq\" : 1337\n  }\n}")
+        mockTransport.mockWebSocketClient.mockReceivedText("{\n  \"event\" : {\n    \"title\" : \"test\",\n    \"completed\" : false,\n    \"label\" : 83,\n    \"identifier\" : \"\(identifier.UUIDString)\",\n    \"type\" : 0,\n    \"seq\" : 1337\n  }\n}")
         expect(mockModelReconciler.appliedEvents.count).toEventually(equal(1))
         expect(mockModelReconciler.appliedEvents[0].identifier).to(equal(identifier))
         expect(mockModelReconciler.appliedEvents[0].type).to(equal(Sync.Event.Type.Insert))
         expect(mockModelReconciler.appliedEvents[0].title).to(equal("test"))
         expect(mockModelReconciler.appliedEvents[0].completed).to(equal(false))
         expect(mockModelReconciler.appliedEvents[0].label).to(equal(83))
+        expect(mockModelReconciler.appliedEvents[0].seq).to(equal(1337))
     }
     
     func testClientReceivingStream() {
@@ -236,5 +237,41 @@ class SyncTests: XCTestCase {
         
         expect(syncClient.queuedEvents.count).toEventually(equal(1))
         expect(syncClient.queuedEvents[0]).to(equal(eventInsert))
+    }
+    
+    func testClientEventQueueingWhenConnected() {
+        let mockTransport = MockTransport(hostURL: NSURL(string: "ws://fakeurl")!, serializableClassRootKeys: [
+            "event": Sync.Event.self,
+            "stream": Sync.Stream.self,
+            "event_inquiry_request": Sync.EventInquiryRequest.self,
+            "event_publication_request": Sync.EventPublicationRequest.self,
+            "event_publication_response": Sync.EventPublicationResponse.self])
+        let mockModelReconciler = MockModelReconciler()
+        let syncClient = Sync.Client(transport: mockTransport, modelReconciler: mockModelReconciler)
+        mockModelReconciler.outboundEventReceiver = syncClient
+        expect(mockTransport.delegate === syncClient).to(beTrue())
+        
+        // Connect and simulate a received event
+        mockTransport.connect()
+        let identifier = NSUUID()
+        let eventInsert = Sync.Event(insert: identifier, completed: false, title: "test", label: 83)
+        mockModelReconciler.mockDidCreateEvent(eventInsert)
+        
+        // Event queued
+        expect(syncClient.queuedEvents.count).toEventually(equal(1))
+        expect(syncClient.queuedEvents[0]).to(equal(eventInsert))
+        
+        // Request sent
+        expect(mockTransport.mockWebSocketClient.sentText.count).toEventually(equal(1))
+        let sentRequestJSONString = mockTransport.mockWebSocketClient.sentText[0]
+        let JSONData = sentRequestJSONString.dataUsingEncoding(NSUTF8StringEncoding)
+        let requestDictionary = try! NSJSONSerialization.JSONObjectWithData(JSONData!, options: NSJSONReadingOptions.AllowFragments) as? Dictionary<String, AnyObject>
+
+        // Simulate a response
+        mockTransport.mockWebSocketClient.mockReceivedText("{\"event_publication_response\":{\"identifier\":\"\(requestDictionary!["event_publication_request"]!["identifier"])\", \"seqs\":[1337]}}")
+        
+        // Queue drained (due to async publishing behavior)
+        expect(syncClient.queuedEvents.count).toEventually(equal(0))
+
     }
 }

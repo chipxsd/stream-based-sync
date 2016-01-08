@@ -59,6 +59,8 @@ public struct Sync {
         
         /// Serial dispatch queue guarding the `self.queuedEvents` collection.
         private var queuedEventsQueue = dispatch_queue_create("sync.client.queuedEventsQueue", DISPATCH_QUEUE_SERIAL)
+        let queuedEventsQueueSpecificKey = ("sync.client.queuedEventsQueue.specificKey" as NSString).UTF8String
+        var queuedEventsQueueSpecificValue = "sync.client.queuedEventsQueue.specificValue"
         
         /// Concurrent queue for non-blocking event publication
         private var publicationQueue = dispatch_queue_create("sync.client.publicationConcurrentQueue", DISPATCH_QUEUE_CONCURRENT)
@@ -68,6 +70,7 @@ public struct Sync {
             self.modelReconciler = modelReconciler
             super.init()
             self.transport.delegate = self
+            dispatch_queue_set_specific(self.queuedEventsQueue, queuedEventsQueueSpecificKey, &queuedEventsQueueSpecificValue, nil);
         }
         
         /* Reconciler protocol implementation */
@@ -99,47 +102,57 @@ public struct Sync {
         /* Private methods */
         private func enqueue(event: Event) {
             dispatch_async(self.queuedEventsQueue) { () -> Void in
-                dispatch_sync(self.publicationQueue) { () -> Void in
+                self.collectionMutationGuard( { () -> Void in
                     self.queuedEvents.append(event)
-                }
+                })
             }
         }
         
         /// A method that talks to the transport layer and in
         /// in charge of publishing the `Events` onto the network stream.
-        private func publishEvents() -> Bool {
+        private func publishEvents() {
             if !self.transport.isConnected {
                 // Exit early, in case client doesn't have the connection
                 // to the server.
-                return false
+                return
             }
             
-            dispatch_sync(self.publicationQueue) { () -> Void in
-                let eventPublicationRequest = EventPublicationRequest(events: self.queuedEvents)
-                let requestSemaphore = dispatch_semaphore_create(0)
-                var eventPublicationResponse: EventPublicationResponse?
-                self.transport.send(eventPublicationRequest) { (success: Bool, response: RPCObject?) -> Void in
-                    if success {
-                        eventPublicationResponse = response as! EventPublicationResponse?
+            dispatch_async(self.queuedEventsQueue) { () -> Void in
+                self.collectionMutationGuard( { () -> Void in
+                    let eventPublicationRequest = EventPublicationRequest(events: self.queuedEvents)
+                    let requestSemaphore = dispatch_semaphore_create(0)
+                    var eventPublicationResponse: EventPublicationResponse?
+                    self.transport.send(eventPublicationRequest) { (success: Bool, response: RPCObject?) -> Void in
+                        if success {
+                            eventPublicationResponse = response as! EventPublicationResponse?
+                        }
+                        dispatch_semaphore_signal(requestSemaphore)
                     }
-                }
-                dispatch_semaphore_wait(requestSemaphore, DISPATCH_TIME_FOREVER)
+                    dispatch_semaphore_wait(requestSemaphore, DISPATCH_TIME_FOREVER)
 
-                // Figure out, which events were successfully published, and
-                // evict them from the self.queuedEvents. Both collections
-                // (one we have locally and from response) should be of
-                // the same size.
-                if self.queuedEvents.count != eventPublicationResponse?.seqs.count {
-                    return // failure
-                }
-                
-                for i in 0..<eventPublicationResponse!.seqs.count {
-                    if eventPublicationResponse!.seqs[i] != EventPublicationResponse.EventNotFound {
-                        self.queuedEvents.removeAtIndex(i)
+                    // Figure out, which events were successfully published, and
+                    // evict them from the self.queuedEvents. Both collections
+                    // (one we have locally and from response) should be of
+                    // the same size.
+                    if self.queuedEvents.count != eventPublicationResponse?.seqs.count {
+                        return // failure
                     }
-                }
+                    
+                    for i in 0..<eventPublicationResponse!.seqs.count {
+                        if eventPublicationResponse!.seqs[i] != EventPublicationResponse.EventNotFound {
+                            self.queuedEvents.removeAtIndex(i)
+                        }
+                    }
+                })
             }
-            return true
+        }
+        
+        private func collectionMutationGuard(mutationblock: dispatch_block_t) {
+            if (dispatch_queue_get_specific(self.queuedEventsQueue, self.queuedEventsQueueSpecificKey) == &self.queuedEventsQueueSpecificValue) {
+                mutationblock();
+            } else {
+                dispatch_sync(self.queuedEventsQueue, mutationblock);
+            }
         }
     }
     
