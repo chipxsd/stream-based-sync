@@ -52,7 +52,7 @@ public protocol Serializable: class {
 
 /// Base RPC structure (for requests and responses)
 public class RPCObject: Serializable {
-    public private(set) var identifier = NSUUID()
+    public private(set) var identifier: NSUUID
     
     init(identifier: NSUUID) {
         self.identifier = identifier

@@ -63,6 +63,8 @@ public struct Sync {
         init(transport: Transport, modelReconciler: ModelReconciler) {
             self.transport = transport
             self.modelReconciler = modelReconciler
+            super.init()
+            self.transport.delegate = self
         }
         
         /* Reconciler protocol implementation */
@@ -108,7 +110,7 @@ public struct Sync {
             }
             
             dispatch_sync(self.publicationQueue) { () -> Void in
-                let eventPublicationRequest = EventPublicationRequest(events: self.queuedEvents, identifier: NSUUID())
+                let eventPublicationRequest = EventPublicationRequest(events: self.queuedEvents)
                 let requestSemaphore = dispatch_semaphore_create(0)
                 var eventPublicationResponse: EventPublicationResponse?
                 self.transport.send(eventPublicationRequest) { (success: Bool, response: RPCObject?) -> Void in
@@ -122,12 +124,12 @@ public struct Sync {
                 // evict them from the self.queuedEvents. Both collections
                 // (one we have locally and from response) should be of
                 // the same size.
-                if self.queuedEvents.count != eventPublicationResponse?.eventStatuses.count {
+                if self.queuedEvents.count != eventPublicationResponse?.seqs.count {
                     return // failure
                 }
                 
-                for i in 0..<eventPublicationResponse!.eventStatuses.count {
-                    if eventPublicationResponse!.eventStatuses[i] {
+                for i in 0..<eventPublicationResponse!.seqs.count {
+                    if eventPublicationResponse!.seqs[i] != EventPublicationResponse.EventNotFound {
                         self.queuedEvents.removeAtIndex(i)
                     }
                 }
@@ -173,6 +175,7 @@ public struct Sync {
             case Delete = 2
         }
         
+        public private(set) var seq: Int?
         public private(set) var type: Type
         public private(set) var identifier: NSUUID
         public private(set) var completed: Bool?
@@ -201,6 +204,7 @@ public struct Sync {
         }
         
         public required init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
+            self.seq = dictionary["seq"] as! Int?
             self.type = Sync.Event.Type(rawValue: UInt8(dictionary["type"] as! Int))!
             self.identifier = NSUUID(UUIDString: dictionary["identifier"] as! String)!
             self.completed = dictionary["completed"] as! Bool?
@@ -226,28 +230,32 @@ public struct Sync {
         }
     }
     
-    public class EventInquiryRequest: NSObject, Serializable {
+    public class EventInquiryRequest: RPCObject {
         public private(set) var seqs: Array<Int>
         
         init(seqs: Array<Int>) {
             self.seqs = seqs
+            super.init(identifier: NSUUID())
         }
         
         public required init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
             self.seqs = dictionary["seqs"] as! Array<Int>
+            super.init(fromDictionary: dictionary)
         }
         
-        public func toDictionary() -> Dictionary<String, AnyObject> {
-            return ["seqs": self.seqs]
+        public override func toDictionary() -> Dictionary<String, AnyObject> {
+            var baseDictionary = super.toDictionary()
+            baseDictionary["seqs"] = self.seqs
+            return baseDictionary
         }
     }
     
     public class EventPublicationRequest: RPCObject {
         public private(set) var events: Array<Event>
         
-        init(events: Array<Event>, identifier: NSUUID) {
+        init(events: Array<Event>) {
             self.events = events
-            super.init(identifier: identifier)
+            super.init(identifier: NSUUID())
         }
         
         public required init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
@@ -272,21 +280,17 @@ public struct Sync {
     }
     
     public class EventPublicationResponse: RPCObject {
-        public private(set) var eventStatuses: Array<Bool>
-
-        init(eventStatuses: Array<Bool>, identifier: NSUUID) {
-            self.eventStatuses = eventStatuses
-            super.init(identifier: identifier)
-        }
+        public private(set) var seqs: Array<Int>
+        public static let EventNotFound = Int(-1)
         
         public required init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
-            self.eventStatuses = dictionary["eventStatuses"] as! Array<Bool>
+            self.seqs = dictionary["seqs"] as! Array<Int>
             super.init(fromDictionary: dictionary)
         }
         
         public override func toDictionary() -> Dictionary<String, AnyObject> {
             var baseDictionary = super.toDictionary()
-            baseDictionary["eventStatuses"] = eventStatuses
+            baseDictionary["seqs"] = seqs
             return baseDictionary
         }
     }

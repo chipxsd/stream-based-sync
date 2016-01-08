@@ -43,7 +43,7 @@ class TransportTests: XCTestCase {
         let transportableObject = MockTransportableObject()
         let transport = MockTransport(hostURL: NSURL(string: "ws://fakeurl:8080/")!, serializableClassRootKeys: [ "hotSauce": MockHotSauce.self, "request": RPCObject.self ])
         transport.delegate = transportableObject
-        transport.mockWebSocketClient.mockConnected = false
+        transport.mockWebSocketClient.disconnect(0)
         
         let request = RPCObject(identifier: NSUUID())
         expect(request).toNot(beNil())
@@ -61,7 +61,7 @@ class TransportTests: XCTestCase {
         let transportableObject = MockTransportableObject()
         let transport = MockTransport(hostURL: NSURL(string: "ws://fakeurl:8080/")!, serializableClassRootKeys: [ "hotSauce": MockHotSauce.self, "request": RPCObject.self ])
         transport.delegate = transportableObject
-        transport.mockWebSocketClient.mockConnected = true
+        transport.mockWebSocketClient.connect()
         
         let request = RPCObject(identifier: NSUUID())
         expect(request).toNot(beNil())
@@ -83,7 +83,7 @@ class TransportTests: XCTestCase {
         let transportableObject = MockTransportableObject()
         let transport = MockTransport(hostURL: NSURL(string: "ws://fakeurl:8080/")!, serializableClassRootKeys: [ "hotSauce": MockHotSauce.self, "request": RPCObject.self ])
         transport.delegate = transportableObject
-        transport.mockWebSocketClient.isConnected = true
+        transport.mockWebSocketClient.connect()
         
         let request = RPCObject(identifier: NSUUID())
         expect(request).toNot(beNil())

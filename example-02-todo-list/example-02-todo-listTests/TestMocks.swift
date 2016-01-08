@@ -57,16 +57,22 @@ public class MockWebSocket: WebSocket {
         self.sentText.append(str)
     }
     
+    public override func connect() {
+        self.mockConnected = true
+        self.delegate?.websocketDidConnect(self)
+    }
+
+    override public func disconnect(forceTimeout: Int) {
+        self.mockConnected = false
+        self.delegate?.websocketDidDisconnect(self, error: nil)
+    }
+    
     override public var isConnected: Bool {
         get {
             return self.mockConnected
         } set {
-            self.mockConnected = isConnected
+            // noop
         }
-    }
-    
-    override public func disconnect(forceTimeout: Int) {
-        self.delegate?.websocketDidDisconnect(self, error: nil)
     }
 }
 
@@ -94,5 +100,13 @@ class MockTransportableObject: NSObject, TransportDelegate {
     
     func transport(transport: Transport, didReceiveObject object: Serializable) {
         self.receivedObjects.append(object)
+    }
+}
+
+class MockModelReconciler: NSObject, ModelReconciler {
+    var appliedEvents = Array<Sync.Event>()
+    func apply(events: Array<Sync.Event>) -> Bool {
+        appliedEvents.appendContentsOf(events)
+        return true
     }
 }
