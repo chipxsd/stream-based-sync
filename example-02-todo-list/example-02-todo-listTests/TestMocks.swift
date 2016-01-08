@@ -40,9 +40,10 @@ class MockHotSauce: Serializable {
     }
 }
 
-class MockWebSocket: WebSocket {
+public class MockWebSocket: WebSocket {
     var url: NSURL
     var sentText: Array<String> = []
+    var mockConnected: Bool = true
     override init(url: NSURL) {
         self.url = url
         super.init(url: url)
@@ -52,8 +53,20 @@ class MockWebSocket: WebSocket {
         self.delegate?.websocketDidReceiveMessage(self, text: text)
     }
     
-    override func writeString(str: String) {
+    override public func writeString(str: String) {
         self.sentText.append(str)
+    }
+    
+    override public var isConnected: Bool {
+        get {
+            return self.mockConnected
+        } set {
+            self.mockConnected = isConnected
+        }
+    }
+    
+    override public func disconnect(forceTimeout: Int) {
+        self.delegate?.websocketDidDisconnect(self, error: nil)
     }
 }
 

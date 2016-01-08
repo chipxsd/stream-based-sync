@@ -62,7 +62,7 @@ public struct Sync {
 
         init(transport: Transport, modelReconciler: ModelReconciler) {
             self.transport = transport
-            self.modelReconciler = modelReconciler;
+            self.modelReconciler = modelReconciler
         }
         
         /* Reconciler protocol implementation */
@@ -111,7 +111,7 @@ public struct Sync {
                 let eventPublicationRequest = EventPublicationRequest(events: self.queuedEvents, identifier: NSUUID())
                 let requestSemaphore = dispatch_semaphore_create(0)
                 var eventPublicationResponse: EventPublicationResponse?
-                self.transport.send(eventPublicationRequest) { (success: Bool, response: Transport.RPCObject?) -> Void in
+                self.transport.send(eventPublicationRequest) { (success: Bool, response: RPCObject?) -> Void in
                     if success {
                         eventPublicationResponse = response as! EventPublicationResponse?
                     }
@@ -119,8 +119,18 @@ public struct Sync {
                 dispatch_semaphore_wait(requestSemaphore, DISPATCH_TIME_FOREVER)
 
                 // Figure out, which events were successfully published, and
-                // evict them from the self.queuedEvents.
-                eventPublicationResponse?.eventStatuses.forEach({$0})
+                // evict them from the self.queuedEvents. Both collections
+                // (one we have locally and from response) should be of
+                // the same size.
+                if self.queuedEvents.count != eventPublicationResponse?.eventStatuses.count {
+                    return // failure
+                }
+                
+                for i in 0..<eventPublicationResponse!.eventStatuses.count {
+                    if eventPublicationResponse!.eventStatuses[i] {
+                        self.queuedEvents.removeAtIndex(i)
+                    }
+                }
             }
             return true
         }
@@ -232,7 +242,7 @@ public struct Sync {
         }
     }
     
-    public class EventPublicationRequest: Transport.RPCObject {
+    public class EventPublicationRequest: RPCObject {
         public private(set) var events: Array<Event>
         
         init(events: Array<Event>, identifier: NSUUID) {
@@ -252,7 +262,7 @@ public struct Sync {
         
         public override func toDictionary() -> Dictionary<String, AnyObject> {
             var baseDictionary = super.toDictionary()
-            var serializedEvents = Array<Dictionary<String, AnyObject>>();
+            var serializedEvents = Array<Dictionary<String, AnyObject>>()
             for event in self.events {
                 serializedEvents.append(event.toDictionary())
             }
@@ -261,7 +271,7 @@ public struct Sync {
         }
     }
     
-    public class EventPublicationResponse: Transport.RPCObject {
+    public class EventPublicationResponse: RPCObject {
         public private(set) var eventStatuses: Array<Bool>
 
         init(eventStatuses: Array<Bool>, identifier: NSUUID) {

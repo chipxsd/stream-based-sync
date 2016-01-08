@@ -50,8 +50,25 @@ public protocol Serializable: class {
     func toDictionary() -> Dictionary<String, AnyObject>
 }
 
+/// Base RPC structure (for requests and responses)
+public class RPCObject: Serializable {
+    public private(set) var identifier = NSUUID()
+    
+    init(identifier: NSUUID) {
+        self.identifier = identifier
+    }
+    
+    public required init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
+        self.identifier = NSUUID(UUIDString: dictionary["identifier"] as! String)!
+    }
+    
+    public func toDictionary() -> Dictionary<String, AnyObject> {
+        return [ "identifier": self.identifier.UUIDString ]
+    }
+}
+
 /// Convenience alias for the completion closure definition.
-public typealias RequestCompletionBlock = (success: Bool, response: Transport.RPCObject?) -> Void
+public typealias RequestCompletionBlock = (success: Bool, response: RPCObject?) -> Void
 
 public class Transport: NSObject, WebSocketDelegate {
     /// The Starscream `WebSocket` client.
@@ -68,30 +85,13 @@ public class Transport: NSObject, WebSocketDelegate {
 
     /// Dictionary of requests in progress.
     private var requestsInProgress = Dictionary<NSUUID, RPCCompletionPair>()
-    
+
     private class RPCCompletionPair: NSObject {
         var request: RPCObject
         var completion: RequestCompletionBlock
         init (request: RPCObject, completion: RequestCompletionBlock) {
             self.request = request
             self.completion = completion
-        }
-    }
-    
-    /// Base RPC structure (for requests and responses)
-    public class RPCObject: NSObject, Serializable {
-        public private(set) var identifier = NSUUID()
-        
-        init(identifier: NSUUID) {
-            self.identifier = identifier
-        }
-        
-        public required init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
-            self.identifier = NSUUID(UUIDString: dictionary["identifier"] as! String)!
-        }
-        
-        public func toDictionary() -> Dictionary<String, AnyObject> {
-            return [ "identifier": self.identifier ]
         }
     }
     
@@ -117,8 +117,19 @@ public class Transport: NSObject, WebSocketDelegate {
     public func disconnect() {
         self.webSocketClient.disconnect()
     }
+
+    public func send(request: RPCObject, completion: RequestCompletionBlock) {
+        if self.isConnected {
+            // Sending request, when online.
+            self.requestsInProgress[request.identifier] = RPCCompletionPair(request: request, completion: completion)
+            self.send(request)
+        } else {
+            // No way to send the request when offline.
+            completion(success: false, response: nil)
+        }
+    }
     
-    public func send(object: Serializable) {
+    internal func send(object: Serializable) {
         let serializedObject = object.toDictionary()
         let JSONObject: Dictionary<String, AnyObject> = [ self.rootKey(object.dynamicType)!: serializedObject ]
         var JSONString: String?
@@ -132,12 +143,7 @@ public class Transport: NSObject, WebSocketDelegate {
             self.webSocketClient.writeString(JSONString!)
         }
     }
-    
-    public func send(request: RPCObject, completion: RequestCompletionBlock) {
-        self.requestsInProgress[request.identifier] = RPCCompletionPair(request: request, completion: completion)
-        self.send(request)
-    }
-    
+
     /* WebSocketDelegate method implementation */
     public func websocketDidConnect(socket: WebSocket) {
         self.delegate?.transportDidConnect(self)
