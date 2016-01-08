@@ -138,7 +138,7 @@ callback which the transport layer calls, which toggles the switch in the UI.
 
 ```swift
 /// The local Light Switch state.
-private var lightSwitchState:Boolean;
+private var lightSwitchState:Boolean
 
 /**
  LightSwitchClientDelegate function implementation, which gets executed
@@ -314,7 +314,7 @@ of the data-model and transfer it over the wire to other
 clients, which is exactly what we did in our example app. We could afford
 this in our _Light Switch_ example app, seeing that the model was
 extremely small -- it's a single instance of a boolean value
-`private var lightSwitchState:Boolean;`, you can't get smaller than that.
+`private var lightSwitchState:Boolean`, you can't get smaller than that.
 
 Should the model be more sophisticated (having multiple fields, mutable
 collections, relationships with other structures), copying the whole structure
@@ -762,8 +762,17 @@ Of course, our synchronization logic also needs an access to the transport,
 how else are we going to send and receive the events?
 
 ```swift
+public protocol TransportDelegate: class {
+    // Invoked by the transport, when it receives an event.
+    func transport(transport: Transport, didReceiveObject object: Serializable)
+    // Invoked by the transport, when it successfully connects
+    func transportDidConnect(transport: Transport)
+    // Invoked by the transport, when it disconnects.
+    func transportDidDisconnect(transport: Transport)
+}
+
 public struct Sync {
-    public class Client: NSObject {
+    public class Client: NSObject, TransportDelegate {
         /// Instance of the Stream object, where we keep the stream information.
         public private(set) var stream: Stream = Stream()
         // Instance of the transport layer.
@@ -773,9 +782,8 @@ public struct Sync {
 
         // Method for publishing events.
         private func publish(event: Event) -> Bool
-
         // Delegate method for handling incoming events.
-        public func transport(transport: Transport, didReceiveObject object: Event)
+        public func transport(transport: Transport, didReceiveEvent event: Event)
     }
 }
 ```
@@ -1092,7 +1100,7 @@ Invoking the `update(identifier:completed:title:label:)` method on `Todo.List`
 instance will give us an `Sync.Event` of type `update`:
 
 ```swift
-let task = todoList[0]; // returns first task in the list
+let task = todoList[0] // returns first task in the list
 let event = todoList.update(task.identifier, completed: true, title: nil, label: nil)
 print("event: '\(event)", event)
 
@@ -1108,7 +1116,7 @@ print("event: '\(event)", event)
 And removing a task from a `Todo.List` is no different:
 
 ```swift
-let task = todoList[0]; // returns first task in the list
+let task = todoList[0] // returns first task in the list
 let event = todoList.remove(task.identifier)
 print("event: '\(event)", event)
 
@@ -1139,6 +1147,19 @@ process we can name _"Inbound Reconciliation"_.
 
 { fig.23 - same as figure 20. but mirrored; server on the left, sending events
 drawn in the middle, turning into a checklist }
+
+The incoming events (pushed via transport) come in through the transport
+delegate method, implemented in the sync client:
+
+```swift
+public struct Sync {
+    public class Client: NSObject, OutboundEventReceiver, TransportDelegate {
+        public func transport(transport: Transport, didReceiveEvent event: Event) {
+            // received an event, now what?
+        }
+    }
+}
+```
 
 As with the _Outbound Reconciliation_ logic, described in **chapter 4.1**,
 _Inbound Reconciliation_ logic can reside in the to-do `Todo.List` class.
@@ -1310,7 +1331,7 @@ to `Sync.Client`.
 
 ```swift
 public struct Sync {
-    public class Client: NSObject, OutboundEventReceiver {
+    public class Client: NSObject, OutboundEventReceiver, TransportDelegate {
         // Delegate method implementation.
         public func reconciler(reconciler: ModelReconciler, didCreateEvent event: Sync.Event) {
             self.publish(event)
@@ -1319,9 +1340,9 @@ public struct Sync {
 }
 ```
 
-### 4.3 Offline support
+### 4.3 Offline Support
 
-Sync logic (`Sync.Client.Publish()`) might be sending the events to void,
+Sync logic (`Sync.Client.publish()`) might be sending the events to void,
 in case the connection to server's down. And when clients miss relevant
 events, they get in an out-of-sync state.
 
@@ -1330,22 +1351,70 @@ data model, but this completely disables the use of the app while user
 doesn't have connectivity.
 
 We have to make sure those events get published at all costs. Instead of
-trying to publish the events directly, we can put them into a queue that
-gets drained with publication.
+trying to publish the events directly, we can put them into a queue
+(`Sync.enqueue(event)`) that gets drained with publication
+(`Sync.client.pulish()`)
 
 ![fig.24 - Queuing Outbound Events](./images/fig-24-Queuing-Outbound-Events.png "fig. 24 - Queuing Outbound Events")
 
 { fig.24 - Draw a queue between checklist and stream }
 
-* [ ] Publishing events with a disconnected client is like sending generated
+Here's the small piece of code to support the theory:
+
+```swift
+public struct Sync {
+    public class Client: NSObject, OutboundEventReceiver, TransportDelegate {
+        public func reconciler(reconciler: ModelReconciler, didCreateEvent event: Sync.Event) {
+            self.enqueue(event)   // puts the event in queue
+            self.publishEvents()  // drains the queue with events getting published
+        }
+
+        public func transportDidConnect(transport: Transport) {
+            // Making sure we drain the queue, once the client's back online.
+            self.publishEvents()
+        }
+
+        private func enqueue(event: Event) {
+            // Put the events on queue for later publication.
+            self.queuedEvents.append(event)
+        }
+
+        private func publishEvents() {
+            if !self.transport.isConnected {
+                // Exit early, no transport to sent the events.
+                return
+            }
+
+            // Send the events off
+            let eventsToPublish = self.queuedEvents
+            self.transport.send(events: eventsToPublish) { success Bool, ...
+                if success {
+                  // Remove the events from the queue, so we don't
+                  // publish them more than once
+                  self.queudEvents.remove(eventsToPublish)
+                }
+            }
+        }
+    }
+}
+```
+
+With offline support, we can now create tasks, modify them (update the
+complete state, color label and its title) even when the client doesn't
+have the connection to the server.
+
+* [x] Publishing events with a disconnected client is like sending generated
       events into void.
-* [ ] For offline support, introduce a queue between event vending and
+* [x] For offline support, introduce a queue between event vending and
       publication logic.
 
 ### 4.4 Reducing the Edit Distance
 
-Todo:
+Picture a scenario where the client is offline and we create a new task.
+And while the client is still offline, we toggle the "complete" check on
+the task _on_ and _off_ -- we do this a few times.
 
+* [ ] Polluting the stream with unnecessary event publication.
 * [ ] How to maintain a short edit distance during reconciliation.
 
 ### 4.5 Conflict Resolution
