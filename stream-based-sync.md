@@ -1414,7 +1414,37 @@ Picture a scenario where the client is offline and we create a new task.
 And while the client is still offline, we toggle the "complete" check on
 the task _on_ and _off_ -- we do this a few times.
 
-* [ ] Polluting the stream with unnecessary event publication.
+Client generated as many events as there are times we tapped the checkbox.
+Why would we want other clients to know of our indecisions with the task
+completeness? We don't want to pollute the stream with these intermediate
+events.
+
+![fig.25 - Polluted Stream](./images/fig-25-polluted-stream.png "fig. 25 - Polluted Stream")
+
+{ fig.25 - Draw a tape of stinky events -- green smoke coming out of them? }
+
+In order to avoid that, we'd have to coalesce the changes we made on the
+model. This is a process known as reducing the
+[edit distance](https://en.wikipedia.org/wiki/Edit_distance). Again, this
+raises the question, where should we implement this logic? We could do
+it in the model logic itself (`Todo.List`), but what if we have more than
+just one app model, then we'd have to write this logic twice for
+different models?
+
+The best place for this would be where we collect (queue) our events for
+publication, which is in our `Sync.Client` logic. The logic should be
+relatively simple, it just needs to follow a small set of rules:
+
+1. **Update Event** for an object should merge the values of the
+   **Insert Event** and other **Update Events** into a single **Insert Event**.
+2. If there are only **Update Events** in queue, and no **Insert Events**
+   beforehand, values are merged into a single **Update Event**.
+3. Last **Update Event** defines the final state of the property it mutates
+   on the object.
+4. **Delete Event** for an object clobbers any previous **Insert Event**
+   or an **Update Event**.
+
+* [x] Polluting the stream with unnecessary event publication.
 * [ ] How to maintain a short edit distance during reconciliation.
 
 ### 4.5 Conflict Resolution
