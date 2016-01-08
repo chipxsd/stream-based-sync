@@ -92,7 +92,7 @@ public struct Sync {
         }
         
         public func transportDidConnect(transport: Transport) {
-            
+            self.publishEvents()
         }
         
         public func transportDidDisconnect(transport: Transport) {
@@ -119,6 +119,10 @@ public struct Sync {
             
             dispatch_async(self.queuedEventsQueue) { () -> Void in
                 self.collectionMutationGuard( { () -> Void in
+                    if self.queuedEvents.count == 0 {
+                        // No events queued for publication
+                        return
+                    }
                     let eventPublicationRequest = EventPublicationRequest(events: self.queuedEvents)
                     let requestSemaphore = dispatch_semaphore_create(0)
                     var eventPublicationResponse: EventPublicationResponse?
@@ -138,8 +142,17 @@ public struct Sync {
                         return // failure
                     }
                     
+                    // Assign just published event's.seq value received
+                    // from response, and remove the event from the queue,
+                    // so it doesn't get published twice.
                     for i in 0..<eventPublicationResponse!.seqs.count {
                         if eventPublicationResponse!.seqs[i] != EventPublicationResponse.EventNotFound {
+                            let publishedEvent = self.queuedEvents[i]
+                            // copy the sequence value from response
+                            publishedEvent.seq = eventPublicationResponse!.seqs[i]
+                            // put the event in publishedEvents
+                            self.publishedEvents.append(publishedEvent)
+                            // evict the event from the publication queue
                             self.queuedEvents.removeAtIndex(i)
                         }
                     }
@@ -148,7 +161,7 @@ public struct Sync {
         }
         
         private func collectionMutationGuard(mutationblock: dispatch_block_t) {
-            if (dispatch_queue_get_specific(self.queuedEventsQueue, self.queuedEventsQueueSpecificKey) == &self.queuedEventsQueueSpecificValue) {
+            if dispatch_queue_get_specific(self.queuedEventsQueue, self.queuedEventsQueueSpecificKey) == &self.queuedEventsQueueSpecificValue {
                 mutationblock();
             } else {
                 dispatch_sync(self.queuedEventsQueue, mutationblock);

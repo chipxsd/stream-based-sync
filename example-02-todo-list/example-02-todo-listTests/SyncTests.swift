@@ -239,7 +239,7 @@ class SyncTests: XCTestCase {
         expect(syncClient.queuedEvents[0]).to(equal(eventInsert))
     }
     
-    func testClientEventQueueingWhenConnected() {
+    func testClientEventPublicationWhenConnected() {
         let mockTransport = MockTransport(hostURL: NSURL(string: "ws://fakeurl")!, serializableClassRootKeys: [
             "event": Sync.Event.self,
             "stream": Sync.Stream.self,
@@ -260,18 +260,70 @@ class SyncTests: XCTestCase {
         // Event queued
         expect(syncClient.queuedEvents.count).toEventually(equal(1))
         expect(syncClient.queuedEvents[0]).to(equal(eventInsert))
+        expect(syncClient.publishedEvents.count).to(equal(0))
         
         // Request sent
         expect(mockTransport.mockWebSocketClient.sentText.count).toEventually(equal(1))
+
+        // Simulate a response
         let sentRequestJSONString = mockTransport.mockWebSocketClient.sentText[0]
         let JSONData = sentRequestJSONString.dataUsingEncoding(NSUTF8StringEncoding)
         let requestDictionary = try! NSJSONSerialization.JSONObjectWithData(JSONData!, options: NSJSONReadingOptions.AllowFragments) as? Dictionary<String, AnyObject>
-
-        // Simulate a response
         mockTransport.mockWebSocketClient.mockReceivedText("{\"event_publication_response\":{\"identifier\":\"\(requestDictionary!["event_publication_request"]!["identifier"])\", \"seqs\":[1337]}}")
         
         // Queue drained (due to async publishing behavior)
         expect(syncClient.queuedEvents.count).toEventually(equal(0))
-
+        expect(syncClient.publishedEvents.count).to(equal(1))
+        
+        // Verify if the response took care of the event
+        let publishedEvent = syncClient.publishedEvents[0]
+        expect(publishedEvent.seq).to(equal(1337))
+    }
+    
+    func testClientEventQueueingAndPublicationWhenTransitioningOnline() {
+        let mockTransport = MockTransport(hostURL: NSURL(string: "ws://fakeurl")!, serializableClassRootKeys: [
+            "event": Sync.Event.self,
+            "stream": Sync.Stream.self,
+            "event_inquiry_request": Sync.EventInquiryRequest.self,
+            "event_publication_request": Sync.EventPublicationRequest.self,
+            "event_publication_response": Sync.EventPublicationResponse.self])
+        let mockModelReconciler = MockModelReconciler()
+        let syncClient = Sync.Client(transport: mockTransport, modelReconciler: mockModelReconciler)
+        mockModelReconciler.outboundEventReceiver = syncClient
+        expect(mockTransport.delegate === syncClient).to(beTrue())
+        
+        // Connect and simulate a received event
+        mockTransport.disconnect()
+        let identifier = NSUUID()
+        let eventInsert = Sync.Event(insert: identifier, completed: false, title: "test", label: 83)
+        mockModelReconciler.mockDidCreateEvent(eventInsert)
+        
+        // Event queued
+        expect(syncClient.queuedEvents.count).toEventually(equal(1))
+        expect(syncClient.queuedEvents[0]).to(equal(eventInsert))
+        expect(syncClient.publishedEvents.count).to(equal(0))
+        
+        // Request should not be sent yet
+        expect(mockTransport.mockWebSocketClient.sentText.count).toEventually(equal(0))
+        
+        // Connect the client
+        mockTransport.connect()
+        
+        // Request sent
+        expect(mockTransport.mockWebSocketClient.sentText.count).toEventually(equal(1))
+        
+        // Simulate a response
+        let sentRequestJSONString = mockTransport.mockWebSocketClient.sentText[0]
+        let JSONData = sentRequestJSONString.dataUsingEncoding(NSUTF8StringEncoding)
+        let requestDictionary = try! NSJSONSerialization.JSONObjectWithData(JSONData!, options: NSJSONReadingOptions.AllowFragments) as? Dictionary<String, AnyObject>
+        mockTransport.mockWebSocketClient.mockReceivedText("{\"event_publication_response\":{\"identifier\":\"\(requestDictionary!["event_publication_request"]!["identifier"])\", \"seqs\":[1337]}}")
+        
+        // Queue drained (due to async publishing behavior)
+        expect(syncClient.queuedEvents.count).toEventually(equal(0))
+        expect(syncClient.publishedEvents.count).to(equal(1))
+        
+        // Verify if the response took care of the event
+        let publishedEvent = syncClient.publishedEvents[0]
+        expect(publishedEvent.seq).to(equal(1337))
     }
 }
