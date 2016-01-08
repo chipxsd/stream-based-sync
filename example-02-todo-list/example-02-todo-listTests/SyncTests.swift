@@ -207,11 +207,34 @@ class SyncTests: XCTestCase {
             "event_publication_response": Sync.EventPublicationResponse.self])
         let mockModelReconciler = MockModelReconciler()
         let syncClient = Sync.Client(transport: mockTransport, modelReconciler: mockModelReconciler)
+        mockModelReconciler.outboundEventReceiver = syncClient
         expect(mockTransport.delegate === syncClient).to(beTrue())
         
         // Connect and simulate a received event
         mockTransport.connect()
         mockTransport.mockWebSocketClient.mockReceivedText("{\n  \"stream\" : {\n    \"latestSeq\" : 1337\n  }\n}")
         expect(syncClient.stream.latestSeq).toEventually(equal(1337))
+    }
+    
+    func testClientEventQueueingWhenDisconnected() {
+        let mockTransport = MockTransport(hostURL: NSURL(string: "ws://fakeurl")!, serializableClassRootKeys: [
+            "event": Sync.Event.self,
+            "stream": Sync.Stream.self,
+            "event_inquiry_request": Sync.EventInquiryRequest.self,
+            "event_publication_request": Sync.EventPublicationRequest.self,
+            "event_publication_response": Sync.EventPublicationResponse.self])
+        let mockModelReconciler = MockModelReconciler()
+        let syncClient = Sync.Client(transport: mockTransport, modelReconciler: mockModelReconciler)
+        mockModelReconciler.outboundEventReceiver = syncClient
+        expect(mockTransport.delegate === syncClient).to(beTrue())
+        
+        // Connect and simulate a received event
+        mockTransport.disconnect()
+        let identifier = NSUUID()
+        let eventInsert = Sync.Event(insert: identifier, completed: false, title: "test", label: 83)
+        mockModelReconciler.mockDidCreateEvent(eventInsert)
+        
+        expect(syncClient.queuedEvents.count).toEventually(equal(1))
+        expect(syncClient.queuedEvents[0]).to(equal(eventInsert))
     }
 }

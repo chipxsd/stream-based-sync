@@ -105,8 +105,12 @@ class MockTransportableObject: NSObject, TransportDelegate {
 
 class MockModelReconciler: NSObject, ModelReconciler {
     var appliedEvents = Array<Sync.Event>()
+    weak var outboundEventReceiver: OutboundEventReceiver?
     func apply(events: Array<Sync.Event>) -> Bool {
         appliedEvents.appendContentsOf(events)
         return true
+    }
+    func mockDidCreateEvent(event: Sync.Event) {
+        self.outboundEventReceiver?.reconciler(self, didCreateEvent: event)
     }
 }

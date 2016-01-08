@@ -9,6 +9,9 @@
 import Foundation
 
 public protocol ModelReconciler: class {
+    /// Receiver of generated events
+    weak var outboundEventReceiver: OutboundEventReceiver? { get set }
+    
     /**
      Applies events from the Array onto the model in the order they're
      stored in the array.
@@ -70,11 +73,13 @@ public struct Sync {
         /* Reconciler protocol implementation */
         public func reconciler(reconciler: ModelReconciler, didCreateEvent event: Sync.Event) {
             self.enqueue(event)
+            self.publishEvents()
         }
         
         /* Transportable protocol implementation */
         public func transport(transport: Transport, didReceiveObject object: Serializable) {
             if let event = object as? Event {
+                self.publishedEvents.append(event)
                 self.modelReconciler.apply([event])
             } else if let stream = object as? Stream {
                 self.stream.latestSeq = stream.latestSeq
@@ -103,7 +108,7 @@ public struct Sync {
         /// A method that talks to the transport layer and in
         /// in charge of publishing the `Events` onto the network stream.
         private func publishEvents() -> Bool {
-            if (!self.transport.isConnected) {
+            if !self.transport.isConnected {
                 // Exit early, in case client doesn't have the connection
                 // to the server.
                 return false
