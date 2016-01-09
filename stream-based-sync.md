@@ -1414,11 +1414,6 @@ With offline support, we can now create tasks, modify them (update the
 complete state, color label and its title) even when the client doesn't
 have the connection to the server.
 
-* [x] Publishing events with a disconnected client is like sending generated
-      events into void.
-* [x] For offline support, introduce a queue between event vending and
-      publication logic.
-
 ### 4.4 Reducing the Edit Distance
 
 Picture a scenario where the client is offline and we create a new task.
@@ -1486,6 +1481,9 @@ public struct Sync {
     }
 }
 ```
+
+With event merging process, client will try to reduce the edit distance of
+queued events, thus making the stream a little cleaner.
 
 ### 4.5 Conflict Resolution
 
