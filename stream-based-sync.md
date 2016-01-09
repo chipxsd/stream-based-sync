@@ -707,6 +707,7 @@ public struct Sync {
           case Insert = 0, Update, Delete
       }
 
+      public private(set) var seq: Int?
       public private(set) var type: Type
       public private(set) var identifier: NSUUID?
       public private(set) var completed: Bool?
@@ -779,6 +780,8 @@ public struct Sync {
         public private(set) var transport: Transport
         // Instance to the app model.
         public private(set) var todoList: Todo.List
+        /// Collection of all events known to client (sent and received).
+        public private(set) var publishedEvents: Array<Event> = []
 
         // Method for publishing events.
         private func publish(event: Event) -> Bool
@@ -1375,7 +1378,7 @@ public struct Sync {
         }
 
         private func enqueue(event: Event) {
-            // Put the events on queue for later publication.
+            // Put the new event on queue for later publication.
             self.queuedEvents.append(event)
         }
 
@@ -1384,14 +1387,22 @@ public struct Sync {
                 // Exit early, no transport to sent the events.
                 return
             }
-
             // Send the events off
-            let eventsToPublish = self.queuedEvents
-            self.transport.send(events: eventsToPublish) { success Bool, ...
-                if success {
-                  // Remove the events from the queue, so we don't
-                  // publish them more than once
-                  self.queudEvents.remove(eventsToPublish)
+            self.transport.send(events: self.publishedEvents) { success Bool, response: Array<int>?) -> Void in
+                if !success {
+                    return
+                }
+                for i in 0..<response!.seqs.count {
+                    if let responseSeq = response![i] != EventNotFound {
+                        // Take the `seq` from response, assign it to
+                        // the published event.
+                        let publishedEvent = self.queuedEvents[i]
+                        publishedEvent.seq = responseSeq
+                        // Store the published event into a collection.
+                        self.publishedEvents.append(publishedEvent)
+                        // Remove the event from the queue.
+                        self.queuedEvents.removeAtIndex(i)
+                    }
                 }
             }
         }
@@ -1431,8 +1442,10 @@ it in the model logic itself (`Todo.List`), but what if we have more than
 just one app model, then we'd have to write this logic twice for
 different models?
 
-The best place for this would be where we collect (queue) our events for
-publication, which is in our `Sync.Client` logic. The logic should be
+The best place to perform the coalescing process would be where we collect
+(queue) our events for publication, which is in our
+`Sync.Client.enqueue(event)` method. The coalescing logic however we can
+implement straight in the `Sync.Event` class itself. The alghorithm should be
 relatively simple, it just needs to follow a small set of rules:
 
 1. **Update Event** for an object should merge the values of the
@@ -1444,8 +1457,35 @@ relatively simple, it just needs to follow a small set of rules:
 4. **Delete Event** for an object clobbers any previous **Insert Event**
    or an **Update Event**.
 
-* [x] Polluting the stream with unnecessary event publication.
-* [ ] How to maintain a short edit distance during reconciliation.
+```swift
+public struct Sync {
+    public class Event: NSObject, Serializable {
+        public func merge(events: Array<Event>) {
+            for oldEvent in events.reverse() {
+                if oldEvent.identifier != self.identifier {
+                    // Event not mergable, due to the identifier mismatch.
+                    continue
+                } else if self.type == Type.Delete {
+                    // Rule #4
+                    self.reset()
+                    self.type = Type.Delete
+                } else if self.type == Type.Update && (oldEvent.type == Type.Insert || oldEvent.type == Type.Update) {
+                    // Rule #1, #2, #3
+                    self.completed = self.completed ?? oldEvent.completed
+                    self.title = self.title ?? oldEvent.title
+                    self.label = self.label ?? oldEvent.label
+                }
+            }
+        }
+    }
+
+    private func enqueue(event: Event) {
+        // Merge all previous events with the new one and use the merged
+        // list of `Events` as `queuedEvents` for publication.
+        self.queuedEvents = event.merge(self.queuedEvents)
+    }
+}
+```
 
 ### 4.5 Conflict Resolution
 

@@ -82,6 +82,60 @@ class SyncTests: XCTestCase {
         expect(dictionaryFromEventDelete["label"] as? Int).to(beNil())
     }
     
+    func testEventMergeMismatchedIdentifiersIgnored() {
+        var queuedEvents = Array<Sync.Event>()
+        queuedEvents.append(Sync.Event(insert: NSUUID(), completed: true, title: "buy milk", label: 1))
+        queuedEvents.append(Sync.Event(update: NSUUID(), completed: false, title: "buy cookies", label: 3))
+        queuedEvents.append(Sync.Event(delete: NSUUID()))
+        
+        let identifier = NSUUID()
+        let lastEvent = Sync.Event(update: identifier, completed: nil, title: nil, label: nil)
+        let mergedEvents = lastEvent.merge(queuedEvents)
+        expect(mergedEvents.count).to(equal(4))
+        
+        expect(lastEvent.identifier).to(equal(identifier))
+        expect(lastEvent.type).to(equal(Sync.Event.Type.Update))
+        expect(lastEvent.completed).to(beNil())
+        expect(lastEvent.title).to(beNil())
+        expect(lastEvent.label).to(beNil())
+    }
+    
+    func testEventMergeUpdatesCoalescedAndLastWins() {
+        let identifier = NSUUID()
+        var queuedEvents = Array<Sync.Event>()
+        queuedEvents.append(Sync.Event(insert: identifier, completed: false, title: "buy milk", label: 1))
+        queuedEvents.append(Sync.Event(update: identifier, completed: nil, title: "no, buy cookies", label: nil))
+        queuedEvents.append(Sync.Event(update: identifier, completed: nil, title: nil, label: 3))
+        
+        let lastEvent = Sync.Event(update: identifier, completed: true, title: nil, label: nil)
+        let mergedEvents = lastEvent.merge(queuedEvents)
+        expect(mergedEvents.count).to(equal(1))
+        
+        expect(lastEvent.identifier).to(equal(identifier))
+        expect(lastEvent.type).to(equal(Sync.Event.Type.Update))
+        expect(lastEvent.completed).to(equal(true))
+        expect(lastEvent.title).to(equal("no, buy cookies"))
+        expect(lastEvent.label).to(equal(3))
+    }
+    
+    func testEventMergeDeleteClobersOtherUpdates() {
+        let identifier = NSUUID()
+        var queuedEvents = Array<Sync.Event>()
+        queuedEvents.append(Sync.Event(insert: identifier, completed: false, title: "buy milk", label: 1))
+        queuedEvents.append(Sync.Event(update: identifier, completed: nil, title: "no, buy cookies", label: nil))
+        queuedEvents.append(Sync.Event(update: identifier, completed: nil, title: nil, label: 3))
+        
+        let lastEvent = Sync.Event(delete: identifier)
+        let mergedEvents = lastEvent.merge(queuedEvents)
+        expect(mergedEvents.count).to(equal(1))
+        
+        expect(lastEvent.identifier).to(equal(identifier))
+        expect(lastEvent.type).to(equal(Sync.Event.Type.Delete))
+        expect(lastEvent.completed).to(beNil())
+        expect(lastEvent.title).to(beNil())
+        expect(lastEvent.label).to(beNil())
+    }
+    
     func testStreamSerialization() {
         let streamFromDictionary = Sync.Stream.init(fromDictionary: [ "latestSeq": 83 ])
         expect(streamFromDictionary.latestSeq).to(equal(83))

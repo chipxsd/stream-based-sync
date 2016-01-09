@@ -103,7 +103,7 @@ public struct Sync {
         private func enqueue(event: Event) {
             dispatch_async(self.queuedEventsQueue) { () -> Void in
                 self.collectionMutationGuard( { () -> Void in
-                    self.queuedEvents.append(event)
+                    self.queuedEvents = event.merge(self.queuedEvents)
                 })
             }
         }
@@ -258,6 +258,35 @@ public struct Sync {
                 dictionary["label"] = Int(self.label!)
             }
             return dictionary
+        }
+        
+        public func merge(events: Array<Event>) -> Array<Event> {
+            var mergedEvents = Array<Event>()
+            for oldEvent in events.reverse() {
+                if oldEvent.identifier != self.identifier {
+                    // Event not mergable, due to the identifier mismatch.
+                    mergedEvents.append(oldEvent)
+                    continue
+                } else if self.type == Type.Delete {
+                    // Rule #4
+                    self.reset()
+                    self.type = Type.Delete
+                } else if self.type == Type.Update && (oldEvent.type == Type.Insert || oldEvent.type == Type.Update) {
+                    // Rule #1, #2, #3
+                    self.completed = self.completed ?? oldEvent.completed
+                    self.title = self.title ?? oldEvent.title
+                    self.label = self.label ?? oldEvent.label
+                }
+            }
+            mergedEvents.append(self)
+            return mergedEvents
+        }
+        
+        private func reset() {
+            self.seq = nil
+            self.completed = nil
+            self.title = nil
+            self.label = nil
         }
     }
     
