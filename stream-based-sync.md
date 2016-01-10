@@ -1389,6 +1389,7 @@ public struct Sync {
             }
             // Send the events off
             self.transport.send(events: self.publishedEvents) { success Bool, response: Array<int>?) -> Void in
+                // Handle the response from the server (with a new 'seq' value).
                 if !success {
                     return
                 }
@@ -1455,23 +1456,25 @@ relatively simple, it just needs to follow a small set of rules:
 ```swift
 public struct Sync {
     public class Event: NSObject, Serializable {
-        public func merge(events: Array<Event>) {
-            for oldEvent in events.reverse() {
-                if oldEvent.identifier != self.identifier {
-                    // Event not mergable, due to the identifier mismatch.
-                    continue
-                } else if self.type == Type.Delete {
-                    // Rule #4
-                    self.reset()
-                    self.type = Type.Delete
-                } else if self.type == Type.Update && (oldEvent.type == Type.Insert || oldEvent.type == Type.Update) {
-                    // Rule #1, #2, #3
-                    self.completed = self.completed ?? oldEvent.completed
-                    self.title = self.title ?? oldEvent.title
-                    self.label = self.label ?? oldEvent.label
-                }
+        var mergedEvents = Array<Event>()
+        for oldEvent in events.reverse() {
+            if oldEvent.identifier != self.identifier {
+                // Event not mergable, due to the identifier mismatch.
+                mergedEvents.append(oldEvent)
+                continue
+            } else if self.type == Type.Delete {
+                // Rule #4
+                self.reset()
+                self.type = Type.Delete
+            } else if self.type == Type.Update && (oldEvent.type == Type.Insert || oldEvent.type == Type.Update) {
+                // Rule #1, #2, #3
+                self.completed = self.completed ?? oldEvent.completed
+                self.title = self.title ?? oldEvent.title
+                self.label = self.label ?? oldEvent.label
             }
         }
+        mergedEvents.append(self)
+        return mergedEvents
     }
 
     private func enqueue(event: Event) {
@@ -1487,12 +1490,46 @@ queued events, thus making the stream a little cleaner.
 
 ### 4.5 Conflict Resolution
 
-Todo:
+In concurrent systems a conflict arises every time two or more nodes (clients
+in our scenario) work on the same resource at once, and one of the nodes takes
+the action before the other does. You can also call this a race condition or
+even say that one of the nodes wasn't fully up-to-date with the resource's
+state, before doing the mutation and then publication.
 
-* [ ] Explain how two (or more) parties can mutate the same object at the
-      time.
-* [ ] Example with mutation after deletion.
-* [ ] Most basic conflict resolution is: last writer wins.
+Our application could potentially have to deal with a conflict where
+one of the clients wants to update the `completed` state of a `Todo.Task`
+when one of the other clients had already deleted the same task. The
+`Sync.Event.Type.Update` event could get written to the stream,
+which would surface up on other clients and cause conflicts in the
+inbound reconciliation process.
+
+![fig.26 - Conflict](./images/fig-26-conflict.png "fig. 26 - Conflict")
+
+{ fig.26 - Draw a tape with a few events then ending with a delete event
+written before the update event }
+
+Here are a few ways to resolve a conflict like that:
+
+* Bring the deleted task back to life, by ignoring the delete event that
+  caused the todo Task to disappear, since update event came in later --
+  also known as, **last writer wins**.
+* Delete event tops any other events that come in later for the same task --
+  known as, **first writer wins**.
+* Surface the conflict to the user in a form of a UI dialog, and letting
+  the **user decide what to do**: "Task was deleted by another user, revert
+  the change?"
+
+All are valid conflict resolutions, but most would agree, bothering users
+to manually resolve conflicts is not the best experience. It's safe to say
+that people are used to the second conflict resolution approach -- trying
+to write a comment under a picture that just got deleted on Facebook would be
+analog to this. And our logic already supports this. If we go back to
+our `Todo.List.apply(event: Sync.Event)` implementation, you'll see
+that `case .Update` is impossible, as the task cannot even be found
+anymore.
+
+Depending on the model of your application, conflicts can be even more
+sophisticated.
 
 ## 5. Order of Events
 
@@ -1549,7 +1586,8 @@ Todo:
 Todo:
 
 * [ ] Building immutable indexes based on the specific attributes of the model,
-      so that clients can prioritize relevant data or ignore irrelevant data.
+      so that clients can prioritize relevant data pull or completely ignore
+      irrelevant data.
 * [ ] Building fast-forward snapshots of model from events by pre-reconciling it
       on server (coalesce mutations for same objects and its attributes,
       reduce edit distance) -- hybrid approach.
