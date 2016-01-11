@@ -1491,12 +1491,12 @@ queued events, thus making the stream a little cleaner.
 ### 4.5 Conflict Resolution
 
 In concurrent systems a conflict arises every time two or more nodes (clients
-in our scenario) work on the same resource at once, and one of the nodes takes
-the action before the other does. You can also call this a race condition or
-even say that one of the nodes wasn't fully up-to-date with the resource's
-state, before doing the mutation and then publication.
+in our scenario) work on the same resource at the same time, and one of the
+nodes takes the action before the other one does. You can also call this a
+race condition or even say that one of the nodes wasn't fully up-to-date
+with the resource's state, before doing the mutation and then publication.
 
-Our application could potentially have to deal with a conflict where
+Our example application could potentially have to deal with a conflict where
 one of the clients wants to update the `completed` state of a `Todo.Task`
 when one of the other clients had already deleted the same task. The
 `Sync.Event.Type.Update` event could get written to the stream,
@@ -1511,7 +1511,7 @@ written before the update event }
 Here are a few ways to resolve a conflict like that:
 
 * Bring the deleted task back to life, by ignoring the delete event that
-  caused the todo Task to disappear, since update event came in later --
+  caused the `Todo.Task` to disappear, since update event came in later --
   also known as, **last writer wins**.
 * Delete event tops any other events that come in later for the same task --
   known as, **first writer wins**.
@@ -1522,18 +1522,47 @@ Here are a few ways to resolve a conflict like that:
 All are valid conflict resolutions, but most would agree, bothering users
 to manually resolve conflicts is not the best experience. It's safe to say
 that people are used to the second conflict resolution approach -- trying
-to write a comment under a picture that just got deleted on Facebook would be
+to write a comment on Facebook under a post that just got would be exact
 analog to this. And our logic already supports this. If we go back to
 our `Todo.List.apply(event: Sync.Event)` implementation, you'll see
 that `case .Update` is impossible, as the task cannot even be found
 anymore.
 
-Depending on the model of your application, conflicts can be even more
-sophisticated.
+```swift
+case .Update: // Task updates
+    let task = self.task(event.identifier)
+    if task == nil {
+        // Task the event is trying to mutate doesn't exist, aborting...
+        return false
+    }
+    task!.update(event.completed!, title: event.title!, label: Task.ColorLabel(rawValue: event.label!)!)// - - >8 - - >8 - - >8 - - >8 - - >8 - - >8 - -
+```
+
+Depending on the model of the application, conflicts can vary and resolutions
+could be more sophisticated.
 
 ## 5. Order of Events
 
-Todo:
+The _event order_ -- this is a very important subject, it needs it's own
+chapter. We write and read `Sync.Events` off of the stream linearly, in fact
+server sequence can tell us exactly in what order were events written to
+the stream -- this type of order is also known as the **total order**. The
+good thing about this order is, that it's simple to work with -- it's
+predictable and requires no additional logic on the server nor the clients.
+When the model reconciles with events the outcome will always be the same:
+
+- task objects will be in the exact same order, dictated by the server
+  defined `Sync.Event.seq`;
+- task object mutations will be applied in the same manner on all clients;
+
+The problem with this kind of ordering though is, that it doesn't work well
+with offline support -- that's where users generate mutations while under
+poor network conditions or no network connection at all.
+
+And here's why... Remember why conflicts occur? Because of the race-conditions,
+because some clients have the _privilege_ get their events written to the
+stream faster than the other _underprivileged_ clients? Which can render
+the `Sync.Events` that come on stream later nonsensical.
 
 * [ ] How to keep the events published by clients in the correct order?
 * [ ] Talk about total the order and causal order.
@@ -1542,8 +1571,8 @@ Todo:
 
 Todo:
 
-* [ ] Locking the stream (e.g. table or row in database) increases the response
-      time drastically in noisy streams.
+* [ ] Locking the stream (e.g. table or row in database) to write events in
+      batches increases the response time drastically in noisy streams.
 
 ### 5.2 Don't Even Think About Timestamps!
 
