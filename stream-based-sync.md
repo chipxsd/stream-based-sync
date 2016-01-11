@@ -1555,26 +1555,62 @@ When the model reconciles with events the outcome will always be the same:
   defined `Sync.Event.seq`;
 - task object mutations will be applied in the same manner on all clients;
 
+![fig.27 - Total Order](./images/fig-27-total-order.png "fig. 27 - Total Order")
+
+{ fig.27 - Draw soldiers, standing in line in multiple rows. }
+
+### 5.1 Synchronized Sequential Writes
+
+If this is the event order we're after, we need to assure that queued events
+get published from clients in the same order they were put on queue
+(client-side). This means that when a client is sending all these queued events
+to the server, it must guarantee an exclusive write access to the stream --
+no other clients should be able to write their events for the time being,
+because that would interleave the events on stream and could cause the model
+inconsistency (race-conditions).
+
+![fig.28 - Exclusive Write Access](./images/fig-28-exclusive-write-access.png "fig. 28 - Exclusive Write Access")
+
+{ fig.28 - same as fig. 10, but only the first part, where one path has
+long marks in the lane (among others) connected to the database }
+
+This does not satisfy our requirement we set out in the **chapter 3.1**
+for having fast writes on the server. As we pointed out, having an exclusive
+write access blocks other clients, which can ruin the experience for other
+users.
+
+Todo:
+
+* [x] Locking the stream (e.g. table or row in database) to write events in
+      batches increases the response time drastically in noisy streams.
+
+### 5.2 Causal Order
+
+Todo:
+
+* [ ] Explain why causal order is important (offline support).
+
 The problem with this kind of ordering though is, that it doesn't work well
 with offline support -- that's where users generate mutations while under
 poor network conditions or no network connection at all.
 
 And here's why... Remember why conflicts occur? Because of the race-conditions,
-because some clients have the _privilege_ get their events written to the
-stream faster than the other _underprivileged_ clients? Which can render
-the `Sync.Events` that come on stream later nonsensical.
+because some clients have the _privilege_ to get their events written to the
+stream faster than the other _underprivileged_ clients? That could render
+the queued `Sync.Events` that come on stream later nonsensical (e.g. applying
+an update `Sync.Event` onto an object, that was previously deleted).
+
+If queued events on an offline client got published a day or say a week after
+user generated them, the `Todo.Tasks` would appear at the bottom, since
+those _late_ events would receive a high `seq` value from the server. This
+might make those `Todo.Tasks` fall out of context. Depending on what the user
+wants, it's debatable, maybe the order of our `Todo.Task` objects is not
+really that important to our use case, but what if we say it is?
 
 * [ ] How to keep the events published by clients in the correct order?
 * [ ] Talk about total the order and causal order.
 
-### 5.1 Synchronized Sequential Writes
-
-Todo:
-
-* [ ] Locking the stream (e.g. table or row in database) to write events in
-      batches increases the response time drastically in noisy streams.
-
-### 5.2 Don't Even Think About Timestamps!
+### 5.3 Don't Even Think About Timestamps!
 
 Todo:
 
@@ -1582,7 +1618,7 @@ Todo:
       extra level of synchronization, which is in most cases unreliable to
       reconstruct the order of events.
 
-### 5.3 Version Vectors
+### 5.4 Version Vectors
 
 Todo:
 
