@@ -1559,7 +1559,7 @@ When the model reconciles with events the outcome will always be the same:
 
 { fig.27 - Draw soldiers, standing in line in multiple rows. }
 
-### 5.1 Synchronized Sequential Writes
+### 5.1 Total Order With Batched Sequential Writes
 
 If this is the event order we're after, we need to assure that queued events
 get published from clients in the same order they were put on queue
@@ -1579,18 +1579,7 @@ for having fast writes on the server. As we pointed out, having an exclusive
 write access blocks other clients, which can ruin the experience for other
 users.
 
-Todo:
-
-* [x] Locking the stream (e.g. table or row in database) to write events in
-      batches increases the response time drastically in noisy streams.
-
-### 5.2 Causal Order
-
-Todo:
-
-* [ ] Explain why causal order is important (offline support).
-
-The problem with this kind of ordering though is, that it doesn't work well
+The other problem with this kind of ordering is also, that it doesn't work well
 with offline support -- that's where users generate mutations while under
 poor network conditions or no network connection at all.
 
@@ -1600,13 +1589,18 @@ stream faster than the other _underprivileged_ clients? That could render
 the queued `Sync.Events` that come on stream later nonsensical (e.g. applying
 an update `Sync.Event` onto an object, that was previously deleted).
 
-If queued events on an offline client got published a day or say a week after
-user generated them, the `Todo.Tasks` would appear at the bottom, since
-those _late_ events would receive a high `seq` value from the server. This
-might make those `Todo.Tasks` fall out of context. Depending on what the user
-wants, it's debatable, maybe the order of our `Todo.Task` objects is not
-really that important to our use case, but what if we say it is?
+If queued events on an offline client got published say a day or worse, a week
+after user generated them, the `Todo.Tasks` would appear at the bottom of the
+list, since those _late_ events would receive a high `seq` value from the
+server. This might make those `Todo.Tasks` fall out of context. Depending on
+what the user wants -- it's debatable, maybe the order of our `Todo.Task`
+objects is not really that important to our use case, but what if we say it is?
 
+### 5.2 Causal Order with Short and Fast Writes
+
+Todo:
+
+* [ ] Explain why causal order is important (offline support).
 * [ ] How to keep the events published by clients in the correct order?
 * [ ] Talk about total the order and causal order.
 
