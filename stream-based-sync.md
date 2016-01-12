@@ -1830,18 +1830,49 @@ There's also cases where stream based synchronization falls short:
 
 * [x] Where server side implementation might be small and simple, client's
       synchronization logic is far **more sophisticated**.
-* [x] Rouge clients can **pollute the stream** with unecessary event
+
+* [x] Rouge clients can **pollute the stream** with unnecessary event
       publications, which could slow down clients that need to catch up.
+
 * [x] Cold clients **must read the entire stream** to get into a fully
       reconciled state. But since the streams can only grow with the use of
       the app, cold clients will take longer to get fully synced. That costs
       time, bandwidth and CPU for clients, which might not be ideal,
       depending on the application model.
+
 * [x] Implementing **partial-sync** to avoid reading the entire stream is **not
-      straightforward**. Partially read stream is the same as if clients
+      straightforward**. Partially read stream is the same as if the client
       did not get all the events, which renders the **model inconsistent**.
 
 ## 8. Possible Optimizations
+
+Most drawbacks of the stream based synchronization are related to clients
+doing too much work. Partial-sync, which I mentioned as a solution to this
+nuisance, is not easy to implement. In most cases, it's an application specific
+problem, there's no generic approach to solve all cases.
+
+A partial-sync approach for our _To-do List example app_ could be as simple
+as just fetching 10 most recent `Todo.Tasks` on the first launch (cold-state),
+and let users _"pull to load more tasks"_.
+
+But unfortunately, it's not as straightforward, as you might think. In our
+case, where we have a list of `Todo.Tasks` and the order is prescribed
+by the clients, it's difficult to know exactly what to pull down from the
+stream, since all a cold-client knows is how many events have been written
+to the stream.
+
+If a client wants to load 10 most recent `Todo.Tasks`, it cannot simply
+load the last 10 events from the stream, since `seq` values don't relate
+to our `Todo.Task` objects. What the client could do is to carefully
+backtrack the stream -- read it in reverse in small chunks and
+stop, once the model satisfies the condition. This is not the ideal approach
+to implement partial-sync, we allow for streams to have a sparce and unordered
+distribution of events. Backtracking such stream means that the client may
+read a lot of unprocessable events, because their preceding events are missing.
+
+As I pointed out in Event Discovery, **chapter 3.5**, clients
+address events by their `seq` value, since that kind of index is easy to
+replicate based on a math formula (linear function).
 
 Todo:
 
