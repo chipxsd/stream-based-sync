@@ -59,7 +59,7 @@ Let's make a list of components we need to have to achieve this:
   between two different background images (one indicating lights are on,
   and the other one for when the switch is off).
 
-![fig.2 - Example App Architecture](./figure_02.png "fig. 2 - Example App Architecture")
+![fig.2 - Example App Architecture](./images/fig-02-example-app-architecture.jpeg "fig. 2 - Example App Architecture")
 
 { fig.2 - draw the light switch architecture, that has a server and a client
 being connected with a two-way arrow and a JSON structure floating between
@@ -304,7 +304,7 @@ we **synchronized document's content** change.
 What about our _Light Switch_ app example (from chapter 2.1.1)? It's nothing
 more than **data-model synchronization**.
 
-![fig.4 - Data Model](./images/fig-04-data-model "fig. 4 - Data Model")
+![fig.4 - Data Model](./images/fig-04-data-model.jpeg "fig. 4 - Data Model")
 
 { fig.4 - draw the light switch JSON structure (as text) being duplicated
 with a mouse cursor having a (+) icon with it }
@@ -347,7 +347,7 @@ datasets first, before replacing the old one. That process burns twice
 as much memory (since you need to hold both sets in memory) and CPU time
 for as much as there are elements in both sets (which gives us the O(n ⋁ m)).
 
-![fig.5 - Differencing Datasets](./images/fig-05-differencing-datasets.png "fig. 5 - Differencing Datasets")
+![fig.5 - Differencing Datasets](./images/fig-05-differencing-datasets.jpeg "fig. 5 - Differencing Datasets")
 
 { fig.5 - draw a filled out exam with ABCD answers, a stencil with
 correct answers, resulting in a exam with incorrect answers crossed }
@@ -373,7 +373,7 @@ work for the receptionist to keep track of what others take notice off.
 So, to make it a little easier you should rephrase the question to: _"What has
 happened after I arrived?"_.
 
-![fig.6 - Guest List](./images/fig-06-guest-list.png "fig. 6 - Guest List")
+![fig.6 - Guest List](./images/fig-06-guest-list.jpeg "fig. 6 - Guest List")
 
 { fig.6 - draw a list of records of guests coming in and out with timestamps }
 
@@ -394,7 +394,7 @@ information to apply onto our dataset (in form of mutations) to
 get it up-to-date and from what we've just learned, is that it can
 significantly reduce the data redundancy in synchronization processes.
 
-![fig.7 - Deltas](./images/fig-07-deltas.png "fig. 7 - Deltas")
+![fig.7 - Deltas](./images/fig-07-deltas.jpeg "fig. 7 - Deltas")
 
 { fig.7 - draw a 16x16 pixel face with mouth missing, and a smile representing
 a delta }
@@ -532,7 +532,7 @@ but also saves CPU time. We already discussed this a little in
 **chapter 2.4.1 -- Absolute Synchronization**, and **chapter 2.5 --
 What are Deltas?**.
 
-![fig.8 - Shared Content](./images/fig-08-shared-content.png "fig. 8 - Shared Content")
+![fig.8 - Shared Content](./images/fig-08-shared-content.jpeg "fig. 8 - Shared Content")
 
 { fig.8 - draw a comparison of a system with 5 users each having his own sheet of paper,
 and a system with 5 users sharing a single sheet of paper; first system
@@ -545,7 +545,7 @@ across other devices. So in other words, get the deltas off of the
 clients, onto the server and back to other users' devices
 as quick as possible.
 
-![fig.9 - Real Time Distribution of Deltas](./images/fig-09-real-time-distribution-of-deltas.png "fig. 9 - Real Time Distributions of Deltas")
+![fig.9 - Real Time Distribution of Deltas](./images/fig-09-real-time-distribution-of-deltas.jpeg "fig. 9 - Real Time Distributions of Deltas")
 
 { fig.9 - picture five mobile phones all connected to a server, and one
 of the devices is sending a short piece of information }
@@ -554,7 +554,7 @@ Another key thing is having short and fast writes on the server, which lowers
 the response time of a client's request and also reduces the load on
 the system -- all these things aim toward **good concurrency characteristics**.
 
-![fig.10 - Fast Writes](./images/fig-10-fast-writes.png "fig. 10 - Fast Writes")
+![fig.10 - Fast Writes](./images/fig-10-fast-writes.jpeg "fig. 10 - Fast Writes")
 
 { fig.10 - sketch a path to the database with 5 lanes merging into one, with
 long marks in lanes indicating writes to database; then another diagram with
@@ -568,7 +568,7 @@ and replication, which should be easy and painless. Having a distributable
 system not only provides fail safety -- in case of outages and data
 corruption -- but it also makes it easy to employ load balancing approaches.
 
-![fig.11 - Distributed System](./images/fig-11-distributed-system.png "fig. 11 - Distributed System")
+![fig.11 - Distributed System](./images/fig-11-distributed-system.jpeg "fig. 11 - Distributed System")
 
 { fig.11 - sketch a database cluster ring with a few services connected
 to them, where one of the services is dead, and a few clients connected
@@ -580,7 +580,7 @@ autonomously. Your synchronized photo library (camera roll) is accessible on
 all your mobile device. Imagine if you couldn't take photos, edit or
 remove them from your library, when you're out of the network conectivity?
 
-![fig.12 - Offline Support](./images/fig-12-offline-support.png "fig. 12 - Offline Support")
+![fig.12 - Offline Support](./images/fig-12-offline-support.jpeg "fig. 12 - Offline Support")
 
 { fig.12 - A globe with a giant cross mark over it }
 
