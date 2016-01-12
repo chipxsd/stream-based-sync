@@ -1866,13 +1866,24 @@ load the last 10 events from the stream, since `seq` values don't relate
 to our `Todo.Task` objects. What the client could do is to carefully
 backtrack the stream -- read it in reverse in small chunks and
 stop, once the model satisfies the condition. This is not the ideal approach
-to implement partial-sync, we allow for streams to have a sparce and unordered
-distribution of events. Backtracking such stream means that the client may
-read a lot of unprocessable events, because their preceding events are missing.
+to implement partial-sync, we allow for streams to have a sparse and unordered
+distribution of events. Backtracking such a stream means that the client may
+run into a lot of un-processable events, because their preceding events are
+missing.
 
-As I pointed out in Event Discovery, **chapter 3.5**, clients
-address events by their `seq` value, since that kind of index is easy to
-replicate based on a math formula (linear function).
+As I pointed out in the Event Discovery, **chapter 3.5**, clients
+address events by their `seq` value, since that kind of an index is easy to
+replicate with a simple math formula (linear function). Unfortunately
+this index only helps us discover missing events, and not the actual
+`Todo.Task` objects and their mutations.
+
+A possible solution to knowing where the object inserts
+(`Sync.Event.Type.Inserts`) and their mutations (`Sync.Event.Type.Updates`)
+are by building a secondary index to the stream. An ordered index that
+would point straight to the events client would need to grab in order to
+reconcile them into a fully up-to-date objects. However, such approach
+introduces an additional layer in the whole synchronization process --
+but that's for another time.
 
 Todo:
 
