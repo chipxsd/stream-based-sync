@@ -1774,14 +1774,6 @@ are, we just used different names and terms:
 * Reconciliation process that get's our model up to date **=** update rules
   replicas use to synchronize their data.
 
-Todo:
-
-* [x] Reconstructing event order based on happened-before information clients
-      include in events.
-* [x] They enable causality tracking between clients (nodes) -- basic mechanism in
-      optimistic (lazy) replications.
-* [x] Very useful when resolving conflicts.
-
 ## 6. Advantages
 
 We can just check off the requirements we set out in the **chapter 3.1**.
@@ -1884,12 +1876,3 @@ would point straight to the events client would need to grab in order to
 reconcile them into a fully up-to-date objects. However, such approach
 introduces an additional layer in the whole synchronization process --
 but that's for another time.
-
-Todo:
-
-* [ ] Building immutable indexes based on the specific attributes of the model,
-      so that clients can prioritize relevant data pull or completely ignore
-      irrelevant data.
-* [ ] Building fast-forward snapshots of model from events by pre-reconciling it
-      on server (coalesce mutations for same objects and its attributes,
-      reduce edit distance) -- hybrid approach.
