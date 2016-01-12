@@ -97,9 +97,7 @@ public class Transport: NSObject, WebSocketDelegate {
     
     /// Instance variable indicating the connection state.
     public var isConnected: Bool {
-        get {
-            return self.webSocketClient.isConnected
-        }
+        return self.webSocketClient.isConnected
     }
     
     init(hostURL: NSURL, serializableClassRootKeys: Dictionary<String, Serializable.Type>) {

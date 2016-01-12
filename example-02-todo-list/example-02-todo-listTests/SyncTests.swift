@@ -20,22 +20,28 @@ class SyncTests: XCTestCase {
     
     func testEventInitialization() {
         let identifier = NSUUID()
-        let eventInsert = Sync.Event(insert: identifier, completed: false, title: "test", label: 83)
+        let eventInsert = Sync.Event(insert: identifier, precedingSeq: 10, clientSeq: 20, completed: false, title: "test", label: 83)
         expect(eventInsert.type).to(equal(Sync.Event.Type.Insert))
+        expect(eventInsert.precedingSeq).to(equal(10))
+        expect(eventInsert.clientSeq).to(equal(20))
         expect(eventInsert.identifier).to(equal(identifier))
         expect(eventInsert.completed).to(beFalse())
         expect(eventInsert.title).to(equal("test"))
         expect(eventInsert.label).to(equal(83))
         
-        let eventUpdate = Sync.Event(update: identifier, completed: false, title: "test", label: 83)
+        let eventUpdate = Sync.Event(update: identifier, precedingSeq: 10, clientSeq: 20, completed: false, title: "test", label: 83)
         expect(eventUpdate.type).to(equal(Sync.Event.Type.Update))
+        expect(eventInsert.precedingSeq).to(equal(10))
+        expect(eventInsert.clientSeq).to(equal(20))
         expect(eventUpdate.identifier).to(equal(identifier))
         expect(eventUpdate.completed).to(beFalse())
         expect(eventUpdate.title).to(equal("test"))
         expect(eventUpdate.label).to(equal(83))
         
-        let eventDelete = Sync.Event(delete: identifier)
+        let eventDelete = Sync.Event(delete: identifier, precedingSeq: 10, clientSeq: 20)
         expect(eventDelete.type).to(equal(Sync.Event.Type.Delete))
+        expect(eventInsert.precedingSeq).to(equal(10))
+        expect(eventInsert.clientSeq).to(equal(20))
         expect(eventDelete.identifier).to(equal(identifier))
         expect(eventDelete.completed).to(beNil())
         expect(eventDelete.title).to(beNil())
@@ -47,6 +53,8 @@ class SyncTests: XCTestCase {
         let eventFromDictionaryInsert = Sync.Event(fromDictionary: [
             "type": Int(Sync.Event.Type.Insert.rawValue),
             "identifier": identifier.UUIDString,
+            "precedingSeq": 10,
+            "clientSeq": 20,
             "completed": false,
             "title": "test",
             "label": 83 ])
@@ -58,25 +66,31 @@ class SyncTests: XCTestCase {
         
         let eventFromDictionaryDelete = Sync.Event(fromDictionary: [
             "type": Int(Sync.Event.Type.Delete.rawValue),
-            "identifier": identifier.UUIDString ])
+            "identifier": identifier.UUIDString,
+            "precedingSeq": 10,
+            "clientSeq": 20 ])
         expect(eventFromDictionaryDelete.type).to(equal(Sync.Event.Type.Delete))
         expect(eventFromDictionaryDelete.identifier).to(equal(identifier))
         expect(eventFromDictionaryDelete.completed).to(beNil())
         expect(eventFromDictionaryDelete.title).to(beNil())
         expect(eventFromDictionaryDelete.label).to(beNil())
 
-        let eventInsert = Sync.Event(insert: identifier, completed: false, title: "test", label: 83)
+        let eventInsert = Sync.Event(insert: identifier, precedingSeq: 10, clientSeq: 20, completed: false, title: "test", label: 83)
         let dictionaryFromEventInsert = eventInsert.toDictionary()
         expect(dictionaryFromEventInsert["type"] as? Int).to(equal(0))
         expect(dictionaryFromEventInsert["identifier"] as? String).to(equal(identifier.UUIDString))
+        expect(dictionaryFromEventInsert["precedingSeq"] as? Int).to(equal(10))
+        expect(dictionaryFromEventInsert["clientSeq"] as? Int).to(equal(20))
         expect(dictionaryFromEventInsert["completed"] as? Bool).to(equal(false))
         expect(dictionaryFromEventInsert["title"] as? String).to(equal("test"))
         expect(dictionaryFromEventInsert["label"] as? Int).to(equal(83))
         
-        let eventDelete = Sync.Event(delete: identifier)
+        let eventDelete = Sync.Event(delete: identifier, precedingSeq: 10, clientSeq: 20)
         let dictionaryFromEventDelete = eventDelete.toDictionary()
         expect(dictionaryFromEventDelete["type"] as? Int).to(equal(2))
         expect(dictionaryFromEventDelete["identifier"] as? String).to(equal(identifier.UUIDString))
+        expect(dictionaryFromEventInsert["precedingSeq"] as? Int).to(equal(10))
+        expect(dictionaryFromEventInsert["clientSeq"] as? Int).to(equal(20))
         expect(dictionaryFromEventDelete["completed"] as? Bool).to(beNil())
         expect(dictionaryFromEventDelete["title"] as? String).to(beNil())
         expect(dictionaryFromEventDelete["label"] as? Int).to(beNil())
@@ -84,12 +98,12 @@ class SyncTests: XCTestCase {
     
     func testEventMergeMismatchedIdentifiersIgnored() {
         var queuedEvents = Array<Sync.Event>()
-        queuedEvents.append(Sync.Event(insert: NSUUID(), completed: true, title: "buy milk", label: 1))
-        queuedEvents.append(Sync.Event(update: NSUUID(), completed: false, title: "buy cookies", label: 3))
-        queuedEvents.append(Sync.Event(delete: NSUUID()))
+        queuedEvents.append(Sync.Event(insert: NSUUID(), precedingSeq: 10, clientSeq: 20, completed: true, title: "buy milk", label: 1))
+        queuedEvents.append(Sync.Event(update: NSUUID(), precedingSeq: 10, clientSeq: 21, completed: false, title: "buy cookies", label: 3))
+        queuedEvents.append(Sync.Event(delete: NSUUID(), precedingSeq: 10, clientSeq: 22))
         
         let identifier = NSUUID()
-        let lastEvent = Sync.Event(update: identifier, completed: nil, title: nil, label: nil)
+        let lastEvent = Sync.Event(update: identifier, precedingSeq: 10, clientSeq: 23, completed: nil, title: nil, label: nil)
         let mergedEvents = lastEvent.merge(queuedEvents)
         expect(mergedEvents.count).to(equal(4))
         
@@ -103,11 +117,11 @@ class SyncTests: XCTestCase {
     func testEventMergeUpdatesCoalescedAndLastWins() {
         let identifier = NSUUID()
         var queuedEvents = Array<Sync.Event>()
-        queuedEvents.append(Sync.Event(insert: identifier, completed: false, title: "buy milk", label: 1))
-        queuedEvents.append(Sync.Event(update: identifier, completed: nil, title: "no, buy cookies", label: nil))
-        queuedEvents.append(Sync.Event(update: identifier, completed: nil, title: nil, label: 3))
+        queuedEvents.append(Sync.Event(insert: identifier, precedingSeq: 10, clientSeq: 20, completed: false, title: "buy milk", label: 1))
+        queuedEvents.append(Sync.Event(update: identifier, precedingSeq: 11, clientSeq: 21, completed: nil, title: "no, buy cookies", label: nil))
+        queuedEvents.append(Sync.Event(update: identifier, precedingSeq: 12, clientSeq: 22, completed: nil, title: nil, label: 3))
         
-        let lastEvent = Sync.Event(update: identifier, completed: true, title: nil, label: nil)
+        let lastEvent = Sync.Event(update: identifier, precedingSeq: 10, clientSeq: 23, completed: true, title: nil, label: nil)
         let mergedEvents = lastEvent.merge(queuedEvents)
         expect(mergedEvents.count).to(equal(1))
         
@@ -121,11 +135,11 @@ class SyncTests: XCTestCase {
     func testEventMergeDeleteClobersOtherUpdates() {
         let identifier = NSUUID()
         var queuedEvents = Array<Sync.Event>()
-        queuedEvents.append(Sync.Event(insert: identifier, completed: false, title: "buy milk", label: 1))
-        queuedEvents.append(Sync.Event(update: identifier, completed: nil, title: "no, buy cookies", label: nil))
-        queuedEvents.append(Sync.Event(update: identifier, completed: nil, title: nil, label: 3))
+        queuedEvents.append(Sync.Event(insert: identifier, precedingSeq: 10, clientSeq: 20, completed: false, title: "buy milk", label: 1))
+        queuedEvents.append(Sync.Event(update: identifier, precedingSeq: 10, clientSeq: 21, completed: nil, title: "no, buy cookies", label: nil))
+        queuedEvents.append(Sync.Event(update: identifier, precedingSeq: 10, clientSeq: 22, completed: nil, title: nil, label: 3))
         
-        let lastEvent = Sync.Event(delete: identifier)
+        let lastEvent = Sync.Event(delete: identifier, precedingSeq: 10, clientSeq: 20)
         let mergedEvents = lastEvent.merge(queuedEvents)
         expect(mergedEvents.count).to(equal(1))
         
@@ -165,7 +179,7 @@ class SyncTests: XCTestCase {
     
     func testEventPublicationRequestInitialization() {
         let identifier = NSUUID()
-        let eventInsert = Sync.Event(insert: identifier, completed: false, title: "test", label: 83)
+        let eventInsert = Sync.Event(insert: identifier, precedingSeq: 10, clientSeq: 20, completed: false, title: "test", label: 83)
         let eventPublicationRequest = Sync.EventPublicationRequest(events: [eventInsert])
         expect(eventPublicationRequest.identifier).toNot(beNil())
         expect(eventPublicationRequest.events).to(equal([eventInsert]))
@@ -178,6 +192,8 @@ class SyncTests: XCTestCase {
             "events": [[
                 "type": Int(Sync.Event.Type.Insert.rawValue),
                 "identifier": identifier.UUIDString,
+                "precedingSeq": 10,
+                "clientSeq": 20,
                 "completed": false,
                 "title": "test",
                 "label": 83 ]
@@ -185,17 +201,21 @@ class SyncTests: XCTestCase {
         expect(eventFromDictionary.identifier).toNot(beNil())
         expect(eventFromDictionary.events[0].type).to(equal(Sync.Event.Type.Insert))
         expect(eventFromDictionary.events[0].identifier).to(equal(identifier))
+        expect(eventFromDictionary.events[0].precedingSeq).to(equal(10))
+        expect(eventFromDictionary.events[0].clientSeq).to(equal(20))
         expect(eventFromDictionary.events[0].completed).to(equal(false))
         expect(eventFromDictionary.events[0].title).to(equal("test"))
         expect(eventFromDictionary.events[0].label).to(equal(83))
         
-        let eventInsert = Sync.Event(insert: identifier, completed: false, title: "test", label: 83)
+        let eventInsert = Sync.Event(insert: identifier, precedingSeq: 10, clientSeq: 20, completed: false, title: "test", label: 83)
         let eventPublicationRequest = Sync.EventPublicationRequest(events: [eventInsert])
         let dictionaryFromRequest = eventPublicationRequest.toDictionary()
         expect(dictionaryFromRequest["identifier"] as? String).to(equal(eventPublicationRequest.identifier.UUIDString))
         let dictionaryOfEvents = dictionaryFromRequest["events"] as? Array<Dictionary<String, AnyObject>>
         expect(dictionaryOfEvents![0]["type"] as? Int).to(equal(0))
         expect(dictionaryOfEvents![0]["identifier"] as? String).to(equal(identifier.UUIDString))
+        expect(dictionaryOfEvents![0]["precedingSeq"] as? Int).to(equal(10))
+        expect(dictionaryOfEvents![0]["clientSeq"] as? Int).to(equal(20))
         expect(dictionaryOfEvents![0]["completed"] as? Bool).to(equal(false))
         expect(dictionaryOfEvents![0]["title"] as? String).to(equal("test"))
         expect(dictionaryOfEvents![0]["label"] as? Int).to(equal(83))
@@ -243,7 +263,7 @@ class SyncTests: XCTestCase {
         
         // Connect and simulate a received event
         mockTransport.connect()
-        mockTransport.mockWebSocketClient.mockReceivedText("{\n  \"event\" : {\n    \"title\" : \"test\",\n    \"completed\" : false,\n    \"label\" : 83,\n    \"identifier\" : \"\(identifier.UUIDString)\",\n    \"type\" : 0,\n    \"seq\" : 1337\n  }\n}")
+        mockTransport.mockWebSocketClient.mockReceivedText("{\n  \"event\" : {\n    \"title\" : \"test\",\n    \"completed\" : false,\n    \"label\" : 83,\n    \"identifier\" : \"\(identifier.UUIDString)\",\n    \"type\" : 0,\n    \"seq\" : 1337,\n    \"precedingSeq\" : 10,    \"clientSeq\" : 20 }\n}")
         expect(mockModelReconciler.appliedEvents.count).toEventually(equal(1))
         expect(mockModelReconciler.appliedEvents[0].identifier).to(equal(identifier))
         expect(mockModelReconciler.appliedEvents[0].type).to(equal(Sync.Event.Type.Insert))
@@ -251,6 +271,8 @@ class SyncTests: XCTestCase {
         expect(mockModelReconciler.appliedEvents[0].completed).to(equal(false))
         expect(mockModelReconciler.appliedEvents[0].label).to(equal(83))
         expect(mockModelReconciler.appliedEvents[0].seq).to(equal(1337))
+        expect(mockModelReconciler.appliedEvents[0].precedingSeq).to(equal(10))
+        expect(mockModelReconciler.appliedEvents[0].clientSeq).to(equal(20))
     }
     
     func testClientReceivingStream() {
@@ -286,7 +308,7 @@ class SyncTests: XCTestCase {
         // Connect and simulate a received event
         mockTransport.disconnect()
         let identifier = NSUUID()
-        let eventInsert = Sync.Event(insert: identifier, completed: false, title: "test", label: 83)
+        let eventInsert = Sync.Event(insert: identifier, precedingSeq: 10, clientSeq: 20, completed: false, title: "test", label: 83)
         mockModelReconciler.mockDidCreateEvent(eventInsert)
         
         expect(syncClient.queuedEvents.count).toEventually(equal(1))
@@ -308,7 +330,7 @@ class SyncTests: XCTestCase {
         // Connect and simulate a received event
         mockTransport.connect()
         let identifier = NSUUID()
-        let eventInsert = Sync.Event(insert: identifier, completed: false, title: "test", label: 83)
+        let eventInsert = Sync.Event(insert: identifier, precedingSeq: 10, clientSeq: 20, completed: false, title: "test", label: 83)
         mockModelReconciler.mockDidCreateEvent(eventInsert)
         
         // Event queued
@@ -349,7 +371,7 @@ class SyncTests: XCTestCase {
         // Connect and simulate a received event
         mockTransport.disconnect()
         let identifier = NSUUID()
-        let eventInsert = Sync.Event(insert: identifier, completed: false, title: "test", label: 83)
+        let eventInsert = Sync.Event(insert: identifier, precedingSeq: 10, clientSeq: 20, completed: false, title: "test", label: 83)
         mockModelReconciler.mockDidCreateEvent(eventInsert)
         
         // Event queued

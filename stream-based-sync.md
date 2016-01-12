@@ -1240,7 +1240,7 @@ private func apply(event: Sync.Event) -> Bool {
             return false
         }
     }
-    return false
+    return true
 }
 ```
 
@@ -1680,9 +1680,7 @@ public struct Sync {
         public private(set) var precedingSeq: Int   // points to the previous `Sync.Event.seq`
         public private(set) var type: Type
         public private(set) var identifier: NSUUID?
-        public private(set) var completed: Bool?
-        public private(set) var title: String?
-        public private(set) var label: Int?
+        // etc...
     }
 }
 ```
@@ -1692,11 +1690,11 @@ publications can affect the server performance and block other clients from
 publishing. If we break the publication into a little more granular
 posts, it'll give other clients a fair chance to publish their events on
 stream due to short and faster writes to the database. But that way, we lose
-the partial order of events that were previously sent in a batch.
+the partial order of events that were previously held together by a batch.
 
 The solution is easy, we just need to add a client generated `seq` which
-will tie the events that were suppose to be sent in a batch together. We can
-call this property `clientSeq`. It's similar to `seq` the value maintaned and
+will tie the events that were suppose to be sent together in a batch. We can
+call this property `clientSeq`. It's similar to `seq`, the value maintained and
 incremented by the server, but in `clientSeq's` case, it's the client that
 increments the value. But in order to prevent the value from growing out
 of bounds, we can reset it in an event when we assign a new `precedingSeq`
@@ -1707,6 +1705,14 @@ This gets us to the final `Sync.Event` structure:
 ```swift
 public struct Sync {
     public class Event: NSObject {
+        /// Event sorting closure
+        static public let causalOrder = { (e1: Event, e2: Event) -> Bool in
+            if e1.precedingSeq == e2.precedingSeq {
+                return e1.clientSeq < e2.clientSeq
+            }
+            return e1.precedingSeq < e2.precedingSeq
+        }
+
         public private(set) var seq: Int?
         public private(set) var precedingSeq: Int   // points to the previous `Sync.Event.seq`.
         public private(set) var clientSeq: Int      // incremented with new events, but reset when `precedingSeq` changes.
@@ -1727,11 +1733,34 @@ With causality tracking our `Sync.Events` can finally be reconciled in the
 exact order as they were generated -- or what we like to call _"causal order"_.
 That's true even if the events on stream are written completely out-of-order.
 The other benefit of the casual order is also that it minimize the conflicts
-that can occur on concurrent systems, since the order will assure outdated
+that can occur in concurrent systems, since the order will assure outdated
 events (queued and published later) are applied onto the `Todo.List` model
-after the events the client saw when it genereated.
+after the events the client saw when it generated.
 
-The whole inbound and outbound reconcilation process and our data structure
+Due to the new ordering regime, we need to fix a few parts of our code. The
+code that reduces the edit distance:
+
+```swift
+public struct Sync {
+    public class Event: NSObject, Serializable {
+        var mergedEvents = Array<Event>()
+        for oldEvent in events.sort(Event.causalOrder) {
+            if oldEvent.identifier != self.identifier {
+            // etc...
+```
+
+and the code that applies the events onto the model:
+
+```swift
+public struct Todo {
+    public class List: NSObject, ModelReconciler {
+        public func apply(events: Array<Sync.Event>) -> Bool {
+            for event in events.sort(Sync.Event.causalOrder) {
+                let success = self.apply(event)
+                // etc...
+```
+
+The whole inbound and outbound reconciliation process and our data structure
 is essentially what [version vectors](https://en.wikipedia.org/wiki/Version_vector)
 are, we just used different names and terms:
 

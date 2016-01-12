@@ -114,3 +114,19 @@ class MockModelReconciler: NSObject, ModelReconciler {
         self.outboundEventReceiver?.reconciler(self, didCreateEvent: event)
     }
 }
+
+class MockOutboundReconciler: NSObject, OutboundEventReceiver {
+    var modelReconciler: ModelReconciler
+    var mockSeqPointer = Sync.SeqPointer(precedingSeq: 0, clientSeq: 0)
+    var createdEvents = Array<Sync.Event>()
+    init(modelReconciler: ModelReconciler) {
+        self.modelReconciler = modelReconciler
+    }
+    /* Reconciler protocol implementation */
+    internal func reconcilerWillCreateEvent(reconciler: ModelReconciler) -> Sync.SeqPointer {
+        return self.mockSeqPointer
+    }
+    internal func reconciler(reconciler: ModelReconciler, didCreateEvent event: Sync.Event) {
+        self.createdEvents.append(event)
+    }
+}

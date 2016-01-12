@@ -11,7 +11,7 @@ import Foundation
 public struct Todo {
     public class List: NSObject, ModelReconciler {
         /// Private collection of tasks maintained by this class.
-        private var tasks: Array<Task> = []
+        internal var tasks: Array<Task> = []
         
         /// Delegate that's in charge of event publication.
         public weak var outboundEventReceiver: OutboundEventReceiver?
@@ -25,7 +25,8 @@ public struct Todo {
          - returns: An `Event` describing the creation of a new object.
          */
         public func create(title: String, label: Task.ColorLabel) -> Bool {
-            let event = Sync.Event(insert: NSUUID(), completed: true, title: title, label: label.rawValue)
+            let seqPointer = self.outboundEventReceiver?.reconcilerWillCreateEvent(self)
+            let event = Sync.Event(insert: NSUUID(), precedingSeq: (seqPointer?.precedingSeq)!, clientSeq: (seqPointer?.clientSeq)!, completed: false, title: title, label: label.rawValue)
             return self.applyAndNotify(event)
         }
         
@@ -46,7 +47,8 @@ public struct Todo {
          - returns: An `Event` describing the mutation of an object.
          */
         public func update(identifier: NSUUID, completed: Bool?, title: String?, label: Task.ColorLabel?) -> Bool {
-            let event = Sync.Event(update: identifier, completed: completed, title: title, label: label != nil ? label!.rawValue : nil as UInt8?)
+            let seqPointer = self.outboundEventReceiver?.reconcilerWillCreateEvent(self)
+            let event = Sync.Event(update: identifier, precedingSeq: (seqPointer?.precedingSeq)!, clientSeq: (seqPointer?.clientSeq)!, completed: completed, title: title, label: label != nil ? label!.rawValue : nil as UInt8?)
             return self.applyAndNotify(event)
         }
 
@@ -59,12 +61,13 @@ public struct Todo {
          - returns: An `Event` describing the deletion of an object.
          */
         public func remove(identifier: NSUUID) -> Bool {
-            let event = Sync.Event(delete: identifier)
+            let seqPointer = self.outboundEventReceiver?.reconcilerWillCreateEvent(self)
+            let event = Sync.Event(delete: identifier, precedingSeq: (seqPointer?.precedingSeq)!, clientSeq: (seqPointer?.clientSeq)!)
             return self.applyAndNotify(event)
         }
         
         public func apply(events: Array<Sync.Event>) -> Bool {
-            for event in events {
+            for event in events.sort(Sync.Event.causalOrder) {
                 let success = self.apply(event)
                 if !success {
                     return false
@@ -91,13 +94,13 @@ public struct Todo {
                 if task == nil {
                     return false
                 }
-                task!.update(event.completed!, title: event.title!, label: Task.ColorLabel(rawValue: event.label!)!)
+                task!.update(event.completed, title: event.title, label: event.label != nil ? Task.ColorLabel(rawValue: event.label!) : nil)
             case .Delete: // Task removal
                 if !self.removeTask(event.identifier) {
                     return false
                 }
             }
-            return false
+            return true
         }
         
         private func applyAndNotify(event: Sync.Event) -> Bool {
@@ -165,6 +168,10 @@ public struct Todo {
             if label != nil {
                 self.label = label!
             }
+        }
+        
+        public override var description: String {
+            return "<Todo.Task: \(unsafeAddressOf(self)) identifier=\(self.identifier.UUIDString) completed=\(self.completed) title=\"\(self.title)\" label=\(self.label)>"
         }
     }
 }

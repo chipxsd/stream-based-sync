@@ -27,7 +27,17 @@ public protocol ModelReconciler: class {
 public protocol OutboundEventReceiver: class {
     /// Instance of the model reconciler.
     var modelReconciler: ModelReconciler { get }
-    
+
+    /**
+     Notifies the receiver that a new event has been created by the model
+     reconciler.
+     
+     - parameter reconciler: The instance of the model reconciler making
+     performing the invocation of this method.
+     - parameter event:      The `Event` instance created.
+     */
+    func reconcilerWillCreateEvent(reconciler: ModelReconciler) -> Sync.SeqPointer
+
     /**
      Notifies the receiver that a new event has been created by the model
      reconciler.
@@ -70,10 +80,14 @@ public struct Sync {
             self.modelReconciler = modelReconciler
             super.init()
             self.transport.delegate = self
-            dispatch_queue_set_specific(self.queuedEventsQueue, queuedEventsQueueSpecificKey, &queuedEventsQueueSpecificValue, nil);
+            dispatch_queue_set_specific(self.queuedEventsQueue, queuedEventsQueueSpecificKey, &queuedEventsQueueSpecificValue, nil)
         }
         
         /* Reconciler protocol implementation */
+        public func reconcilerWillCreateEvent(reconciler: ModelReconciler) -> SeqPointer {
+            return SeqPointer(precedingSeq: self.stream.latestSeq, clientSeq:self.stream.generateClientSeq())
+        }
+        
         public func reconciler(reconciler: ModelReconciler, didCreateEvent event: Sync.Event) {
             self.enqueue(event)
             self.publishEvents()
@@ -162,22 +176,36 @@ public struct Sync {
         
         private func collectionMutationGuard(mutationblock: dispatch_block_t) {
             if dispatch_queue_get_specific(self.queuedEventsQueue, self.queuedEventsQueueSpecificKey) == &self.queuedEventsQueueSpecificValue {
-                mutationblock();
+                mutationblock()
             } else {
-                dispatch_sync(self.queuedEventsQueue, mutationblock);
+                dispatch_sync(self.queuedEventsQueue, mutationblock)
             }
         }
     }
     
     public class Stream: NSObject, Serializable {
         /// Last known sequence value received from the server.
-        public var latestSeq: Int = 0
+        public var _latestSeq: Int = 0
+        public private(set) var clientSeq: Int = 0
 
+        /// Instance variable indicating the connection state.
+        public var latestSeq: Int {
+            get {
+                return self._latestSeq
+            } set {
+                self._latestSeq = newValue
+                // resetting the client seq counter
+                self.clientSeq = 0
+            }
+        }
+        
         override init() {
+            super.init()
             self.latestSeq = 0
         }
 
         public required init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
+            super.init()
             self.latestSeq = dictionary["latestSeq"] as! Int
         }
         
@@ -186,6 +214,19 @@ public struct Sync {
             var dictionary: Dictionary<String, AnyObject> = Dictionary()
             dictionary["latestSeq"] = Int(self.latestSeq)
             return dictionary
+        }
+        
+        internal func generateClientSeq() -> Int {
+            return self.clientSeq++
+        }
+    }
+    
+    public struct SeqPointer {
+        let precedingSeq: Int
+        let clientSeq: Int
+        init (precedingSeq: Int, clientSeq: Int) {
+            self.precedingSeq = precedingSeq
+            self.clientSeq = clientSeq
         }
     }
     
@@ -206,36 +247,54 @@ public struct Sync {
             case Delete = 2
         }
         
+        /// Event sorting closure
+        static public let causalOrder = { (e1: Event, e2: Event) -> Bool in
+            if e1.precedingSeq == e2.precedingSeq {
+                return e1.clientSeq < e2.clientSeq
+            }
+            return e1.precedingSeq < e2.precedingSeq
+        }
+        
         public private(set) var seq: Int?
+        public private(set) var precedingSeq: Int
+        public private(set) var clientSeq: Int
         public private(set) var type: Type
         public private(set) var identifier: NSUUID
         public private(set) var completed: Bool?
         public private(set) var title: String?
         public private(set) var label: UInt8?
         
-        init(insert identifier: NSUUID, completed: Bool, title: String, label: UInt8) {
+        init(insert identifier: NSUUID, precedingSeq: Int, clientSeq: Int, completed: Bool, title: String, label: UInt8) {
             self.type = Type.Insert
+            self.precedingSeq = precedingSeq
+            self.clientSeq = clientSeq
             self.identifier = identifier
             self.completed = completed
             self.title = title
             self.label = label
         }
         
-        init(update identifier: NSUUID, completed: Bool?, title: String?, label: UInt8?) {
+        init(update identifier: NSUUID, precedingSeq: Int, clientSeq: Int, completed: Bool?, title: String?, label: UInt8?) {
             self.type = Type.Update
+            self.precedingSeq = precedingSeq
+            self.clientSeq = clientSeq
             self.identifier = identifier
             self.completed = completed
             self.title = title
             self.label = label
         }
         
-        init(delete identifier: NSUUID) {
+        init(delete identifier: NSUUID, precedingSeq: Int, clientSeq: Int) {
             self.type = Type.Delete
             self.identifier = identifier
+            self.precedingSeq = precedingSeq
+            self.clientSeq = clientSeq
         }
         
         public required init(fromDictionary dictionary: Dictionary<String, AnyObject>) {
             self.seq = dictionary["seq"] as! Int?
+            self.precedingSeq = dictionary["precedingSeq"] as! Int
+            self.clientSeq = dictionary["clientSeq"] as! Int
             self.type = Sync.Event.Type(rawValue: UInt8(dictionary["type"] as! Int))!
             self.identifier = NSUUID(UUIDString: dictionary["identifier"] as! String)!
             self.completed = dictionary["completed"] as! Bool?
@@ -248,6 +307,8 @@ public struct Sync {
             var dictionary: Dictionary<String, AnyObject> = Dictionary()
             dictionary["type"] = Int(self.type.rawValue)
             dictionary["identifier"] = self.identifier.UUIDString
+            dictionary["precedingSeq"] = self.precedingSeq
+            dictionary["clientSeq"] = self.clientSeq
             if self.completed != nil {
                 dictionary["completed"] = self.completed!
             }
@@ -262,7 +323,7 @@ public struct Sync {
         
         public func merge(events: Array<Event>) -> Array<Event> {
             var mergedEvents = Array<Event>()
-            for oldEvent in events.reverse() {
+            for oldEvent in events.sort(Event.causalOrder).reverse() {
                 if oldEvent.identifier != self.identifier {
                     // Event not mergable, due to the identifier mismatch.
                     mergedEvents.append(oldEvent)
