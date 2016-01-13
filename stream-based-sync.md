@@ -799,7 +799,7 @@ is to broadcast those exact changes to other peers. These events are
 received by all active clients, and as long as the clients are
 connected to the server, they are going to have a consistent dataset.
 
-![fig.17 - Streaming To-do List Mutations](./images/fig-17-streaming-to-do-list-mutations.png "fig. 17 - Streaming To-do List Mutations")
+![fig.17 - Streaming To-do List Mutations](./images/fig-17-streaming-to-do-list-mutations.jpeg "fig. 17 - Streaming To-do List Mutations")
 
 { fig.17 - a tape of to-do item mutations with a phone having a smily face
 on the screen and a few checked items below }
@@ -809,7 +809,7 @@ events which are important to reconstruct the dataset. What good is
 an `Sync.Event` telling that a task was completed to a client that never saw
 the original task to begin with?
 
-![fig.18 - Missing Events](./images/fig-18-missing-events.png "fig. 18 - Missing Events")
+![fig.18 - Missing Events](./images/fig-18-missing-events.jpeg "fig. 18 - Missing Events")
 
 { fig.18 - a tape of to-do item mutations with a phone having a puzzled
 face 🤔 and a checkmark next to "?????????????" }
