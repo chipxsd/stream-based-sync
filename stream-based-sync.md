@@ -323,8 +323,8 @@ expensive.
 
 ### 2.4 Approaches to Data Synchronization
 
-What we've learned from the previous chapter is, that there are different
-ways to get our data up-to-date. The most naive way is to just **copy it**,
+There are different ways to make our data up-to-date, as we've learned in the previous chapter. 
+The most naive way is to just **copy it**,
 which in a lot of cases, is less than ideal. Better way to get the existing
 data up-to-date is to only **apply changes** to it. Let's examine
 both approaches.
