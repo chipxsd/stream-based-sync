@@ -9,7 +9,7 @@ _Still a work in progress_
 I'm the lead iOS engineer at Layer, primarily working on the messaging SDK,
 which mostly consists of multiple layers of data synchronization. I started
 working on various data synchronization approaches at the early stage of
-the company and there has been many prototypes built across the platform,
+the company and there has been many prototypes built across the pplatform,
 Android and iOS.
 
 ## 2. Data Synchronization
@@ -215,7 +215,7 @@ So there you go, a pretty basic approach to data synchronization.
 
 In our example (chapter 2.1.1) we demonstrated how to synchronize an ON/OFF
 switch across multiple devices -- it's not a common use case, but it was good
-enough to prove a point.
+enough to demonstrate the basic concept.
 
 There are a lot of applications we use every day that use data synchronization
 to share the same state across devices, let's identify a few with examples:
