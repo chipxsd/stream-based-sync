@@ -597,7 +597,7 @@ a **stream** of live **events** -- events that describe the changes to the
 model. As long as the clients retain the connection with the server, their
 model will be up-to-date.
 
-![fig.13 - Stream of Events](./images/fig-13-stream-of-events.png "fig. 13 - Stream of Events")
+![fig.13 - Stream of Events](./images/fig-13-stream-of-events.jpeg "fig. 13 - Stream of Events")
 
 { fig.13 - a tape of events having "ON" and "OFF" values and a phone at
 the end with a happy face 😁 on the screen and a lit lightbulb }
@@ -617,7 +617,7 @@ advanced data model, and since we're in the spirit of exercising our theory
 knowledge on examples, let's try it on a different kind of application.
 Let's build a _To-do List_ app!
 
-![fig.14 - To-do List App](./images/fig-14-to-do-list-app.png "fig. 14 - To-do List App")
+![fig.14 - To-do List App](./images/fig-14-to-do-list-app.jpeg "fig. 14 - To-do List App")
 
 { fig.14 - an isometric phone in someone's hand with a few checklist items
 on the screen; some checked, some left un-checked }
@@ -726,7 +726,7 @@ So, if a user creates a new task in the app, app will emit an `Sync.Event` over
 the network. _Note: again, I'm going to use JSON-like notation to describe
 objects with values_.
 
-![fig.15 - Adding a To-do Item](./images/fig-15-adding-a-to-do-item.png "fig. 15 - Adding a To-do Item")
+![fig.15 - Adding a To-do Item](./images/fig-15-adding-a-to-do-item.jpeg "fig. 15 - Adding a To-do Item")
 
 { fig.15 - an isometric phone in someone's hand and a thumb tapping on the (+)
 icon next to an item with a text spelling "Buy milk" }
@@ -744,7 +744,7 @@ icon next to an item with a text spelling "Buy milk" }
 If a user marks the task as completed, app will generate and emit an
 event looking like so:
 
-![fig.16 - Marking an Item as Completed](./images/fig-16-marking-an-item-as-completed.png "fig. 16 - Marking an Item As Completed")
+![fig.16 - Marking an Item as Completed](./images/fig-16-marking-an-item-as-completed.jpeg "fig. 16 - Marking an Item As Completed")
 
 { fig.16 - an isometric phone in someone's hand and a thumb tapping on the
 checkmark next to the item }
