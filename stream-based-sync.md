@@ -832,7 +832,7 @@ mutate any of the existing events once they have been written down.
 
 ![fig.19 - Persistent Stream](./images/fig-19-persistent-stream.png "fig. 19 - Persistent Stream")
 
-{ fig.19 - draw a tape of events hold together by two reels }
+{ fig.19 - draw a tape of events held together by two reels }
 
 A lot of distributed databases are married to this idea, their performance is
 better, when you don't mutate existing records. In the
@@ -918,10 +918,10 @@ what is the most recent event's `seq` value written to the stream:
 
 ```swift
 public struct Sync {
-  public class Stream: NSObject {
-      /// Last known sequence value received from the server.
-      public private(set) var latestSeq: Int = 0
-  }
+    public class Stream: NSObject {
+        /// Last known sequence value received from the server.
+        public private(set) var latestSeq: Int = 0
+    }
 }
 ```
 
