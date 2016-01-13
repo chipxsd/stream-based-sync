@@ -1360,7 +1360,7 @@ trying to publish the events directly, we can put them into a queue
 (`Sync.enqueue(event)`) that gets drained with publication
 (`Sync.client.pulish()`)
 
-![fig.24 - Queuing Outbound Events](./images/fig-24-Queuing-Outbound-Events.png "fig. 24 - Queuing Outbound Events")
+![fig.24 - Queuing Outbound Events](./images/fig-24-queuing-outbound-events.jpeg "fig. 24 - Queuing Outbound Events")
 
 { fig.24 - Draw a queue between checklist and stream }
 
@@ -1428,7 +1428,7 @@ Why would we want other clients to know of our indecisions with the task
 completeness? We don't want to pollute the stream with these intermediate
 events.
 
-![fig.25 - Polluted Stream](./images/fig-25-polluted-stream.png "fig. 25 - Polluted Stream")
+![fig.25 - Polluted Stream](./images/fig-25-polluted-stream.jpeg "fig. 25 - Polluted Stream")
 
 { fig.25 - Draw a tape of stinky events -- green smoke coming out of them? }
 
@@ -1505,7 +1505,7 @@ when one of the other clients had already deleted the same task. The
 which would surface up on other clients and cause conflicts in the
 inbound reconciliation process.
 
-![fig.26 - Conflict](./images/fig-26-conflict.png "fig. 26 - Conflict")
+![fig.26 - Conflict](./images/fig-26-conflict.jpeg "fig. 26 - Conflict")
 
 { fig.26 - Draw a tape with a few events then ending with a delete event
 written before the update event }
@@ -1557,7 +1557,7 @@ When the model reconciles with events the outcome will always be the same:
   defined `Sync.Event.seq`;
 - task object mutations will be applied in the same manner on all clients;
 
-![fig.27 - Total Order](./images/fig-27-total-order.png "fig. 27 - Total Order")
+![fig.27 - Total Order](./images/fig-27-total-order.jpeg "fig. 27 - Total Order")
 
 { fig.27 - Draw soldiers, standing in line in multiple rows. }
 
