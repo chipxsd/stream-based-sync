@@ -584,7 +584,7 @@ remove them from your library, when you're out of the network conectivity?
 
 { fig.12 - A globe with a giant cross mark over it }
 
-### 3.2 Stream of Events
+### 3.2 Stream of Mutations
 
 Finally, we get to talk about stream based synchronization. Remember how
 we synchronize our _Light Switch_ apps in **chapter 2.1**? Clients have a
@@ -597,7 +597,7 @@ a **stream** of live **events** -- events that describe the changes to the
 model. As long as the clients retain the connection with the server, their
 model will be up-to-date.
 
-![fig.13 - Stream of Events](./images/fig-13-stream-of-events.jpeg "fig. 13 - Stream of Events")
+![fig.13 - Stream of Mutations](./images/fig-13-stream-of-mutations.jpeg "fig. 13 - Stream of Mutations")
 
 { fig.13 - a tape of events having "ON" and "OFF" values and a phone at
 the end with a happy face 😁 on the screen and a lit lightbulb }
@@ -828,7 +828,9 @@ words, we need to persist the _stream of events_.
 We can think of a persistent stream as a linear magnetic tape, a storage
 with [WORM](https://en.wikipedia.org/wiki/Write_once_read_many) behavior.
 It's where we're only allowed to append the events at the end, and we can't
-mutate any of the existing events once they have been written down.
+mutate any of the existing events once they have been written down. Or another
+way to look at the persistent stream is like a journal of all the events
+that have happened.
 
 ![fig.19 - Persistent Stream](./images/fig-19-persistent-stream.png "fig. 19 - Persistent Stream")
 
