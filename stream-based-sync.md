@@ -709,7 +709,7 @@ public struct Sync {
 
         public private(set) var seq: Int?
         public private(set) var type: Type
-        public private(set) var identifier: NSUUID?
+        public private(set) var identifier: NSUUID
         public private(set) var completed: Bool?
         public private(set) var title: String?
         public private(set) var label: Int?
@@ -832,7 +832,7 @@ mutate any of the existing events once they have been written down. Or another
 way to look at the persistent stream is like a journal of all the events
 that have happened.
 
-![fig.19 - Persistent Stream](./images/fig-19-persistent-stream.png "fig. 19 - Persistent Stream")
+![fig.19 - Persistent Stream](./images/fig-19-persistent-stream.jpeg "fig. 19 - Persistent Stream")
 
 { fig.19 - draw a tape of events held together by two reels }
 
@@ -934,7 +934,7 @@ told us it has. Now client knows exactly which events it needs to pull
 from the server (based on a _diffed_ set of `seq`) in order to
 get to a consistent state with other peers.
 
-![fig.20 - Sequenced Events](./images/fig-20-sequenced-events.png "fig. 20 - Sequenced Events")
+![fig.20 - Sequenced Events](./images/fig-20-sequenced-events.jpeg "fig. 20 - Sequenced Events")
 
 { fig.20 - draw two streams (tapes), a server stream and a client stream;
 server stream has all events in the stream, whereas client has a hole
@@ -1033,7 +1033,7 @@ If we have to pick a name for this process of turning model mutations into
 synchronize-able (syncable for short) `Sync.Events`, let's call it
 _"Outbund Reconciliation"_.
 
-![fig.21 - Outbound Reconciliation](./images/fig-21-outbound-reconciliation.png "fig. 21 - Outbound Reconciliation")
+![fig.21 - Outbound Reconciliation](./images/fig-21-outbound-reconciliation.jpeg "fig. 21 - Outbound Reconciliation")
 
 { fig.21 - a list of todo items on the left with an arrow pointing to
 events on the center and another arrow pointing at the stream on the right}
@@ -1148,7 +1148,7 @@ What do other clients do with `Sync.Events`, once they receive them from
 the server? These `Sync.Events` have to be turned back into object. It's a
 process we can name _"Inbound Reconciliation"_.
 
-![fig.23 - Inbound Reconciliation](./images/fig-23-inbound-reconciliation.png "fig. 23 - Inbound Reconciliation")
+![fig.23 - Inbound Reconciliation](./images/fig-23-inbound-reconciliation.jpeg "fig. 23 - Inbound Reconciliation")
 
 { fig.23 - same as figure 20. but mirrored; server on the left, sending events
 drawn in the middle, turning into a checklist }
