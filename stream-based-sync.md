@@ -323,7 +323,7 @@ expensive.
 
 ### 2.4 Approaches to Data Synchronization
 
-There are different ways to make our data up-to-date, as we've learned in the previous chapter. 
+There are different ways to make our data up-to-date, as we've learned in the previous chapter.
 The most naive way is to just **copy it**,
 which in a lot of cases, is less than ideal. Better way to get the existing
 data up-to-date is to only **apply changes** to it. Let's examine
@@ -1571,7 +1571,7 @@ no other clients should be able to write their events for the time being,
 because that would interleave the events on stream and could cause the model
 inconsistency (race-conditions).
 
-![fig.28 - Exclusive Write Access](./images/fig-28-exclusive-write-access.png "fig. 28 - Exclusive Write Access")
+![fig.28 - Exclusive Write Access](./images/fig-28-exclusive-write-access.jpeg "fig. 28 - Exclusive Write Access")
 
 { fig.28 - same as fig. 10, but only the first part, where one path has
 long marks in the lane (among others) connected to the database }
@@ -1599,7 +1599,7 @@ server. This might make those `Todo.Tasks` fall out of context. Depending on
 what the user wants -- it's debatable, maybe the order of our `Todo.Task`
 objects is not really that important to our use case, but what if we say it is?
 
-![fig.29 - Outdated Tasks](./images/fig-29-outdated-tasks.png "fig. 29 - Outdated Tasks")
+![fig.29 - Outdated Tasks](./images/fig-29-outdated-tasks.jpeg "fig. 29 - Outdated Tasks")
 
 { fig.29 - Draw a phone with the task list where last three tasks have spider
 web on them ...  }
@@ -1637,7 +1637,7 @@ synchronization can't guarantee there won't be any time skew. Plus, relying
 on external synchronization processes is just an extra moving piece in the
 whole machine that could fail.
 
-![fig.30 - Universal Time](./images/fig-30-universal-time.png "fig. 30 - Universal Time")
+![fig.30 - Universal Time](./images/fig-30-universal-time.jpeg "fig. 30 - Universal Time")
 
 { fig.30 - Draw a few time pieces with a slight random time skew on
   all of them }
@@ -1727,7 +1727,7 @@ public struct Sync {
 }
 ```
 
-![fig.31 - Version Vectors](./images/fig-31-version-vectors.png "fig. 31 - Version Vectors")
+![fig.31 - Version Vectors](./images/fig-31-version-vectors.jpeg "fig. 31 - Version Vectors")
 
 { fig.31 - Draw version vectors as events pointing back to previous events. }
 
