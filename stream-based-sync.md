@@ -788,7 +788,7 @@ public struct Sync {
         // Method for publishing events.
         private func publish(event: Event) -> Bool
         // Delegate method for handling incoming events.
-        public func transport(transport: Transport, didReceiveEvent event: Event)
+        func transport(transport: Transport, didReceiveObject object: Serializable)
     }
 }
 ```
@@ -798,7 +798,7 @@ public struct Sync {
 We now have an idea, how events transmitted to a stream look like. Client
 generating the events sends them to the server, then server's responsibility
 is to broadcast those exact changes to other peers. These events are
-received by all active clients, and as long as the clients are
+received by all active clients, and as long as the clients remain
 connected to the server, they are going to have a consistent dataset.
 
 ![fig.17 - Streaming To-do List Mutations](./images/fig-17-streaming-to-do-list-mutations.jpeg "fig. 17 - Streaming To-do List Mutations")
