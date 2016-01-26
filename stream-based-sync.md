@@ -2,29 +2,19 @@
 
 ## 1. Introduction
 
-### 1.1 Who Am I, What I Do?
+I'd like to talk about a very specific approach on how to synchronize
+shared data across devices using Stream Based Data Synchronization. It's
+a known concept that's been implemented in various different ways in the
+past decades. But whenever I try to explain this concept to friends, I lose
+them. So I wanted to present this concept in a more attractive way, by
+providing code examples and lovely diagrams.
 
-Allow me to introduce myself. My name is Klemen Verdnik. I got the opportunity
-to start with programming very early in my life, and I've always been
-fascinated with low-lever programming, things like writing audio and image
-processing routines, tight loop optimizations, anything where there's
-something to be processed and delivered in near real-time.
-
-I've built my own digital graphic equalizer using DSP as a teenager. I had
-an opportunity to work on various cool projects, such as
-[fleet management system](https://www.crunchbase.com/organization/telargo)
-even before smartphones had GPS modules integrated;
-[mobile payment solution](http://www.margento.com/solutions/mobile-payments)
-that allows you to make a secure financial transaction with your cell phone
-using sound.
-
-I joined my first start-up called vox.io, where we built a pretty cool
-[telephony](https://www.youtube.com/watch?v=kf2nrHIA2kY) /
-[messaging](https://www.youtube.com/watch?v=1B5i7lhX9Og) solution
-for web and mobile. Then started a company with colleagues called
-[layer.com](http://layer.com), where we built an awesome messaging platform.
-It's where I helped built various synchronization protocols and
-really got obssesed with it.
+So in this publication, I'll guide you through what data synchronization is,
+how to implement a very basic app that synchronizes with the server, essentially
+do all the ground work first, so that you'll get the idea what kind of data we
+even deal with, how transmit it across the network, then slowly build up to
+the full solution where I'll demonstrate the behavior, expose caveats and
+talk a little about where this concept works best and where it falls short.
 
 ## 2. Data Synchronization
 
@@ -116,8 +106,8 @@ it over the open Web Socket connection.
 
 Now we need a function to do the similar operation on the inbound side.
 In an event of receiving a JSON structure, it should try deserializing it
-into a dictionary object and call a delegate method to let it know of the new
-Light Switch state.
+into a dictionary object and call a delegate method to let the app data
+model know of the new Light Switch state.
 
 ```swift
 /**
@@ -143,9 +133,9 @@ public func websocketDidReceiveMessage(socket: WebSocket, text: String) {
 
 The UI controller implementation should be symmetrical to the transport
 layer implementation. Again, two functions -- one sending the controller's
-Light Switch state to the transport layer whenever user taps on the button,
+Light Switch state to the transport layer whenever user taps the button,
 and the other one should be an implementation of the delegate
-callback which the transport layer calls, which toggles the switch in the UI.
+callback that the transport layer calls, which toggles the switch in the UI.
 
 ```swift
 /// The local Light Switch state.
@@ -1592,7 +1582,7 @@ a potential point of failure.
 Another argument against timestamp approach is that users could mess with
 their system time, by manually overriding it during the use of the app.
 If only a simple system clock change can mess with the final model outcome
-for other peers, that makes for a very unrobust app. And we don't want that.
+for other peers, that makes for a very fragile app. And we don't want that.
 
 ### 5.2.2 Version Vectors
 
@@ -1824,3 +1814,28 @@ would point straight to the events client would need to grab in order to
 reconcile them into a fully up-to-date objects. However, such approach
 introduces an additional layer in the whole synchronization process --
 but that's for another time.
+
+## Who Am I, What I Do?
+
+Allow me to introduce myself. My name is Klemen Verdnik. I've been programming
+from a very young age, and I've quickly become fascinated with low-level
+programming - things like writing audio and image processing routines,
+tight loop optimizations, anything where there's something to be processed
+and delivered in near real-time.
+
+As a teenager I built a ton of hobby projects, including my very own DSP
+powered digital graphic equalizer. One of my early employers was a high tech
+company from Slovenia called Ultra, where I had an opportunity to work
+with many teams on various cool tech projects, such as a fleet management
+system called [TalkTrack](https://www.crunchbase.com/organization/telargo)
+(before smartphones were a thing) and later on a team that developed a mobile
+payment solution called [Margento](http://www.margento.com/solutions/mobile-payments)
+(before Apple pay was a thing).
+
+Later I joined a start-up called vox.io, where we built a pretty cool
+[telephony](https://www.youtube.com/watch?v=kf2nrHIA2kY) /
+[messaging](https://www.youtube.com/watch?v=1B5i7lhX9Og) solution for the web
+and mobile devices. A few years later I helped start a company together with my
+collegues called [layer.com](http://layer.com), where we built an awesome
+messaging platform. It's at Layer where I helped build the various
+synchronization protocols with a devotion bordering on obsession.
