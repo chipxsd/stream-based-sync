@@ -1,16 +1,30 @@
-# Stream Based Data Synchronization (working title)
-
-_Still a work in progress_
+# Stream Based Data Synchronization
 
 ## 1. Introduction
 
 ### 1.1 Who Am I, What I Do?
 
-I'm the lead iOS engineer at Layer, primarily working on the messaging SDK,
-which mostly consists of multiple layers of data synchronization. I started
-working on various data synchronization approaches at the early stage of
-the company and there has been many prototypes built across the platform,
-Android and iOS.
+Allow me to introduce myself. My name is Klemen Verdnik. I got the opportunity
+to start with programming very early in my life, and I've always been
+fascinated with low-lever programming, things like writing audio and image
+processing routines, tight loop optimizations, anything where there's
+something to be processed and delivered in near real-time.
+
+I've built my own digital graphic equalizer using DSP as a teenager. I had
+an opportunity to work on various cool projects, such as
+[fleet management system](https://www.crunchbase.com/organization/telargo)
+even before smartphones had GPS modules integrated;
+[mobile payment solution](http://www.margento.com/solutions/mobile-payments)
+that allows you to make a secure financial transaction with your cell phone
+using sound.
+
+I joined my first start-up called vox.io, where we built a pretty cool
+[telephony](https://www.youtube.com/watch?v=kf2nrHIA2kY) /
+[messaging](https://www.youtube.com/watch?v=1B5i7lhX9Og) solution
+for web and mobile. Then started a company with colleagues called
+[layer.com](http://layer.com), where we built an awesome messaging platform.
+It's where I helped built various synchronization protocols and
+really got obssesed with it.
 
 ## 2. Data Synchronization
 
@@ -26,8 +40,8 @@ same state across multiple clients.
 
 An example would be a mobile app with a toggle switch, say a **light switch**.
 Now, if I have 5 devices in front of me, I'd like to have the light switch
-state shared across all those devices. If I turn the lights on or off
-one device, it should reflect the changes on other 4 devices. That's a
+state shared across all those devices. If I turn the lights ON or OFF on
+one device, other four devices should reflect that change. That's a
 pretty basic example of data synchronization over network.
 
 ![fig.1 - Example App "Light Switch"](./images/fig-01-lightswitch-app.gif "fig. 1 - Example App 'Light Switch'")
