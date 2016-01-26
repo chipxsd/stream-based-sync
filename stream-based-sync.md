@@ -36,10 +36,11 @@ Solutions for such problem come pretty natural to experienced engineers, but
 for some it may not be as trivial. So let's play with the _Light Switch_
 sample app idea for a little. To narrow down the requirements for this app,
 let's say that the light switch state has to be shared across devices
-via TCP/IP network. I pointed out TCP/IP network because there are also other
-technologies and protocols we could use which provide close proximity
-communication to achieve this (such as Bluetooth, AdHoc WiFi,
-Multi-peer Connectivity on Apple devices, etc.).
+via TCP/IP network.
+
+**Note:** _Instead of TCP/IP we could of course use any other available
+technology/protocol such as Bluetooth, AdHoc WiFi, Multi-peer Connectivity
+on Apple devices, etc._
 
 #### 2.1.2 How Would We Design Such a System?
 
@@ -211,7 +212,7 @@ So there you go, a pretty basic approach to data synchronization.
 
 In our example (chapter 2.1.1) we demonstrated how to synchronize an ON/OFF
 switch across multiple devices -- it's not a common use case, but it was good
-enough to prove a point.
+enough to demonstrate the basic concept.
 
 There are a lot of applications we use every day that use data synchronization
 to share the same state across devices, let's identify a few with examples:
@@ -1478,13 +1479,14 @@ could be more sophisticated.
 
 ## 5. Order of Events
 
-The _event order_ -- this is a very important subject, it needs it's own
-chapter. We write and read `Sync.Events` off of the stream linearly, in fact
-server sequence can tell us exactly in what order were events written to
-the stream -- this type of order is also known as the **total order**. The
-good thing about this order is, that it's simple to work with -- it's
-predictable and requires no additional logic on the server nor the clients.
-When the model reconciles with events the outcome will always be the same:
+The _event order_ is a very important subject and needs it's own chapter.
+`Sync.Events` are written and read to and from the stream in a linear fashion.
+In fact, the server sequence can tell us the exact order of the events as
+they were written to the stream. This type of order is also known as
+the **total order**. The good thing about it is, that it's easy to work with.
+It's predictable and requires no additional logic on the server nor
+the clients. When the model reconciles with events the outcome will always
+be the same:
 
 - task objects will be in the exact same order, dictated by the server
   defined `Sync.Event.seq`;
@@ -1494,19 +1496,17 @@ When the model reconciles with events the outcome will always be the same:
 
 ### 5.1 Total Order With Batched Sequential Writes
 
-If this is the event order we're after, we need to assure that queued events
-get published from clients in the same order they were put on queue
-(client-side).
-This means that when a client is sending all these queued events
-to the server, it must guarantee an exclusive write access to the stream --
-no other clients should be able to write their events for the time being,
-because that would interleave the events on stream and could cause the model
-inconsistency (race-conditions).
+In this type of event order we need to assure that queued events get
+published by the clients in the same order they were put on queue
+(client-side). Therefore exclusive write access is required by any client
+wanting to send their queued events to the server. Allowing other clients to
+write their events during that time would risk interleaving the events on
+stream and could cause the model inconsistency (race-conditions).
 
 ![fig.28 - Exclusive Write Access](./images/fig-28-exclusive-write-access.png "fig. 28 - Exclusive Write Access")
 
 This does not satisfy our requirement we set out in the **chapter 3.1**
-for having fast writes on the server. As we pointed out, having an exclusive
+having fast writes on the server. As I've pointed out, having an exclusive
 write access blocks other clients, which can ruin the experience for other
 users.
 
@@ -1518,32 +1518,34 @@ due to the requirement that batches be written in the same order as they
 were generated._
 
 The other problem with this kind of ordering is also, that it doesn't work well
-with offline support -- that's where users generate mutations while under
+with offline support -- when users generate mutations while under
 poor network conditions or no network connection at all.
 
 And here's why... Remember why conflicts occur? Because of the race-conditions
-that happen in concurrency. Or you could say, it's because some clients have
+that happen in concurrency. Put differently, it's because some clients have
 the _privilege_ to get their events written to the stream faster than the
 other _underprivileged_ clients? That could render the queued `Sync.Events`
 that come on stream later nonsensical (e.g. applying an update `Sync.Event`
 onto an object, that was previously deleted).
 
-If queued events on an offline client got published say a day or worse, a week
-after user generated them, the `Todo.Tasks` would appear at the bottom of the
-list, since those _late_ events would receive a high `seq` value from the
-server. This might make those `Todo.Tasks` fall out of context. Depending on
-what the user wants -- it's debatable, maybe the order of our `Todo.Task`
-objects is not really that important to our use case, but what if we say it is?
+If queued events by an offline client got published with a significant delay
+(for example a day, or even worse, a week after a user generated them),
+the `Todo.Tasks` would appear at the bottom of the list, since those _late_
+events would receive a high `seq` value from the server. server. That might
+make such `Todo.Tasks` fall out of context, and we don't want that -- assuming
+of course the order of `Todo.Tasks` tasks is important.
 
 ![fig.29 - Outdated Tasks](./images/fig-29-outdated-tasks.png "fig. 29 - Outdated Tasks")
 
 ### 5.2 Causal Order
 
-If we **DO** want to keep the order of `Todo.Tasks` as the user that created
-them **perceived it**, then the total order comes out of the question. Events
-need to be reconciled with the model in the order as the events were
-generated by the clients, and not in the order as they were published on
-the stream. I know, it's hard wrapping your head around that statement.
+And since the order of `Todo.Tasks` should reflect the same order that the
+user **percieved** while creating them, then the total order comes out of the
+question. Events need to be reconciled with the model in the same order as
+the events were generated by the clients, and not in the order as they were
+published on the stream. I know, it's hard wrapping your head around that
+statement. So, does that mean that different clients may see different order?
+That’s exactly what that means.
 
 Due to the fact that the generated `Sync.Events` is the **effect** of user
 responding to the UI and taking action, basically requires the `Sync.Events`
@@ -1561,26 +1563,27 @@ So, if we can't rely on the server generated `seq` to give us the correct order
 the `Sync.Events` should be processed in, what other key could we order them
 by?
 
-You thought of timestamps, didn't you? Even though the title of this chapter
-said not to. Alright, let's have it your way. Say we rely on client dictated
-timestamps based on the system's real-time-clock. How can we guarantee
-that all client's synchronized against the same `Sync.Stream` have their
-RTCs set to exact same time? Sorry, but not even the NTP nor GPS time
-synchronization can't guarantee there won't be any time skew. Plus, relying
-on external synchronization processes is just an extra moving piece in the
-whole machine that could fail.
+You're thinking about timestamps aren't you? Even though the title of this
+chapter said not to. Alright, let's have it your way. Say we do rely on
+client dictated timestamps based on the system's real-time-clock. How can
+we guarantee that all client's synchronized against the same `Sync.Stream`
+have their RTCs set to exact same time? Sadly neither the NTP nor GPS time
+synchronization can guarantee perfect sync without any time skew.
+Additionally, relying on external synchronization processes results in
+an extra moving piece in the whole machinery and presents
+a potential point of failure.
 
 ![fig.30 - Universal Time](./images/fig-30-universal-time.png "fig. 30 - Universal Time")
 
-Another contradicting fact is that users could mess with their system time,
-by manually overriding it, during the use of the app. It just makes our
-app appear tenuous, if only a simple system clock change could mess with
-the final model outcome for other peers, and we don't want that.
+Another argument against timestamp approach is that users could mess with
+their system time, by manually overriding it during the use of the app.
+If only a simple system clock change can mess with the final model outcome
+for other peers, that makes for a very unrobust app. And we don't want that.
 
 ### 5.2.2 Version Vectors
 
-We could reconstruct the `Sync.Event` order as it was perceived by
-the author (the client that generated it), if we knew what the client
+There is a way to reconstruct the `Sync.Event` order as it was perceived by
+the author (the client that generated it). All we need to know is what the client
 saw before it generated the `Sync.Event`. That little extra information is
 also known as "[happened-before](https://en.wikipedia.org/wiki/Happened-before)"
 relation. It allows us to track the event causality, which is the basic
@@ -1592,7 +1595,7 @@ From Wikipedia on [optimistic replications](https://en.wikipedia.org/wiki/Optimi
 > replication in which replicas are allowed to diverge._
 
 With this notion in place, we allow clients to operate independently from the
-server and perform mutations on what's their view of the model. When clients
+server and perform mutations on what their view of the model is. When clients
 do eventually come back online and publish all the `Sync.Events` they
 generated, it will bring other online clients to a consistent state --
 we know this concept as [eventual consistency](https://en.wikipedia.org/wiki/Eventual_consistency).
@@ -1600,7 +1603,7 @@ we know this concept as [eventual consistency](https://en.wikipedia.org/wiki/Eve
 How does the "happened-before" information look like? It's as simple as the
 client stating: "for the event I'm about to generate, this is the last event
 I saw" -- this establishes the happened-before relation between events.
-This extra piece of data could piggyback onto the events, and we can take the
+This extra piece of data could piggyback on the events, and we can take the
 advantage of the `seq` value to point to `Sync.Events` that happened-before,
 due to `seq` being a constant value generated by the server. We can call
 this value the `precedingSeq` and add it to our `Sync.Event` model:
@@ -1617,20 +1620,21 @@ public struct Sync {
 }
 ```
 
-Unfortunately, we're not done yet... We mentioned, having long batched
+Unfortunately, we're not done yet... As I've mentioned, having long batched
 publications can affect the server performance and block other clients from
 publishing. If we break the publication into a little more granular
 posts, it'll give other clients a fair chance to publish their events on
-stream due to short and faster writes to the database. But that way, we lose
-the partial order of events that were previously held together by a batch.
+stream due to short and faster writes to the database. But then we lose
+the information of the partial order of events, previously held together
+by a batch.
 
-The solution is easy, we just need to add a client generated `seq` which
-will tie the events that were suppose to be sent together in a batch. We can
-call this property `clientSeq`. It's similar to `seq`, the value maintained and
-incremented by the server, but in `clientSeq's` case, it's the client that
-increments the value. But in order to prevent the value from growing out
-of bounds, we can reset it in an event when we assign a new `precedingSeq`
-value.
+The solution is simple, we just need to add a client generated `seq` which
+will tie the events that would otherwise be sent together in a batch.
+We can call this property `clientSeq`. It's similar to `seq`, the value
+maintained and incremented by the server, but in `clientSeq's` case,
+it's the client that increments the value. But in order to prevent the
+value from growing out of bounds, we can reset it in an event when we
+assign a new `precedingSeq` value.
 
 This gets us to the final `Sync.Event` structure:
 
