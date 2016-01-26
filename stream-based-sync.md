@@ -36,10 +36,7 @@ Solutions for such problem come pretty natural to experienced engineers, but
 for some it may not be as trivial. So let's play with the _Light Switch_
 sample app idea for a little. To narrow down the requirements for this app,
 let's say that the light switch state has to be shared across devices
-via TCP/IP network. I pointed out TCP/IP network because there are also other
-technologies and protocols we could use which provide close proximity
-communication to achieve this (such as Bluetooth, AdHoc WiFi,
-Multi-peer Connectivity on Apple devices, etc.).
+via TCP/IP network. Instead of TCP/IP we could of course use any other available technology/protocol such as Bluetooth, AdHoc WiFi, Multi-peer Connectivity on Apple devices, etc.
 
 #### 2.1.2 How Would We Design Such a System?
 
