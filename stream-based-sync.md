@@ -59,11 +59,7 @@ Let's make a list of components we need to have to achieve this:
   between two different background images (one indicating lights are on,
   and the other one for when the switch is off).
 
-![fig.2 - Example App Architecture](./images/fig-02-example-app-architecture.jpeg "fig. 2 - Example App Architecture")
-
-{ fig.2 - draw the light switch architecture, that has a server and a client
-being connected with a two-way arrow and a JSON structure floating between
-them }
+![fig.2 - Example App Architecture](./images/fig-02-example-app-architecture.png "fig. 2 - Example App Architecture")
 
 Both client side and server side code should be very simple to implement.
 
@@ -264,7 +260,7 @@ It's similar to how [Dropbox](https://en.wikipedia.org/wiki/Dropbox_(service)),
 these file hosting solutions minimize the work in order to get the files
 in sync with all machines.
 
-![fig.3 - File Sharing](./images/fig-03-file-sharing.jpeg "fig. 3 - File Sharing")
+![fig.3 - File Sharing](./images/fig-03-file-sharing.png "fig. 3 - File Sharing")
 
 Copying file's content over to other clients **every time** we touch it on one
 machine can be a rather expensive operation -- well, it depends on the size
@@ -304,10 +300,7 @@ we **synchronized document's content** change.
 What about our _Light Switch_ app example (from chapter 2.1.1)? It's nothing
 more than **data-model synchronization**.
 
-![fig.4 - Data Model](./images/fig-04-data-model.jpeg "fig. 4 - Data Model")
-
-{ fig.4 - draw the light switch JSON structure (as text) being duplicated
-with a mouse cursor having a (+) icon with it }
+![fig.4 - Data Model](./images/fig-04-data-model.png "fig. 4 - Data Model")
 
 As with file and document synchronization, we can just make a copy
 of the data-model and transfer it over the wire to other
@@ -349,10 +342,7 @@ datasets first, before replacing the old one. That process burns twice
 as much memory (since you need to hold both sets in memory) and CPU time
 for as much as there are elements in both sets (which gives us the O(n ⋁ m)).
 
-![fig.5 - Differencing Datasets](./images/fig-05-differencing-datasets.jpeg "fig. 5 - Differencing Datasets")
-
-{ fig.5 - draw a filled out exam with ABCD answers, a stencil with
-correct answers, resulting in a exam with incorrect answers crossed }
+![fig.5 - Differencing Datasets](./images/fig-05-differencing-datasets.png "fig. 5 - Differencing Datasets")
 
 Suppose you're invited to a dinner party and you ask the receptionist
 _"Who's here?"_. That person will respond: _"There's Alex, Blake, Caroline,
@@ -375,9 +365,7 @@ work for the receptionist to keep track of what others take notice off.
 So, to make it a little easier you should rephrase the question to: _"What has
 happened after I arrived?"_.
 
-![fig.6 - Guest List](./images/fig-06-guest-list.jpeg "fig. 6 - Guest List")
-
-{ fig.6 - draw a list of records of guests coming in and out with timestamps }
+![fig.6 - Guest List](./images/fig-06-guest-list.png "fig. 6 - Guest List")
 
 The receptionist would just go through the list where he keeps the names
 of the guests joining and leaving the party, look for the record when you
@@ -396,10 +384,7 @@ information to apply onto our dataset (in form of mutations) to
 get it up-to-date and from what we've just learned, is that it can
 significantly reduce the data redundancy in synchronization processes.
 
-![fig.7 - Deltas](./images/fig-07-deltas.jpeg "fig. 7 - Deltas")
-
-{ fig.7 - draw a 16x16 pixel face with mouth missing, and a smile representing
-a delta }
+![fig.7 - Deltas](./images/fig-07-deltas.png "fig. 7 - Deltas")
 
 #### 2.5.1 How to Encode Deltas?
 
@@ -534,11 +519,7 @@ but also saves CPU time. We already discussed this a little in
 **chapter 2.4.1 -- Absolute Synchronization**, and **chapter 2.5 --
 What are Deltas?**.
 
-![fig.8 - Shared Content](./images/fig-08-shared-content.jpeg "fig. 8 - Shared Content")
-
-{ fig.8 - draw a comparison of a system with 5 users each having his own sheet of paper,
-and a system with 5 users sharing a single sheet of paper; first system
-covered in a cross mark, the other one with a check mark }
+![fig.8 - Shared Content](./images/fig-08-shared-content.png "fig. 8 - Shared Content")
 
 One of the important requirements to most folks is also **speed**. How fast
 we can get a user action delivered to the server -- by _"user action"_, I mean
@@ -547,20 +528,13 @@ across other devices. So in other words, get the deltas off of the
 clients, onto the server and back to other users' devices
 as quick as possible.
 
-![fig.9 - Real Time Distribution of Deltas](./images/fig-09-real-time-distribution-of-deltas.jpeg "fig. 9 - Real Time Distributions of Deltas")
-
-{ fig.9 - picture five mobile phones all connected to a server, and one
-of the devices is sending a short piece of information }
+![fig.9 - Real Time Distribution of Deltas](./images/fig-09-real-time-distribution-of-deltas.png "fig. 9 - Real Time Distributions of Deltas")
 
 Another key thing is having short and fast writes on the server, which lowers
 the response time of a client's request and also reduces the load on
 the system -- all these things aim toward **good concurrency characteristics**.
 
-![fig.10 - Fast Writes](./images/fig-10-fast-writes.jpeg "fig. 10 - Fast Writes")
-
-{ fig.10 - sketch a path to the database with 5 lanes merging into one, with
-long marks in lanes indicating writes to database; then another diagram with
-shorter marks in the lanes, indicating shorter writes }
+![fig.10 - Fast Writes](./images/fig-10-fast-writes.png "fig. 10 - Fast Writes")
 
 Lastly, a very important aspect to system design is **scalability**.
 A system can grow with the number of users it serves, as does with
@@ -570,11 +544,7 @@ and replication, which should be easy and painless. Having a distributable
 system not only provides fail safety -- in case of outages and data
 corruption -- but it also makes it easy to employ load balancing approaches.
 
-![fig.11 - Distributed System](./images/fig-11-distributed-system.jpeg "fig. 11 - Distributed System")
-
-{ fig.11 - sketch a database cluster ring with a few services connected
-to them, where one of the services is dead, and a few clients connected
-to services. }
+![fig.11 - Distributed System](./images/fig-11-distributed-system.png "fig. 11 - Distributed System")
 
 A feature we tend to forget about is also **offline support**.
 Synchronization logic should not prevent the application logic from operating
@@ -582,9 +552,7 @@ autonomously. Your synchronized photo library (camera roll) is accessible on
 all your mobile device. Imagine if you couldn't take photos, edit or
 remove them from your library, when you're out of the network conectivity?
 
-![fig.12 - Offline Support](./images/fig-12-offline-support.jpeg "fig. 12 - Offline Support")
-
-{ fig.12 - A globe with a giant cross mark over it }
+![fig.12 - Offline Support](./images/fig-12-offline-support.png "fig. 12 - Offline Support")
 
 ### 3.2 Stream of Mutations
 
@@ -599,10 +567,7 @@ a **stream** of live **events** -- events that describe the changes to the
 model. As long as the clients retain the connection with the server, their
 model will be up-to-date.
 
-![fig.13 - Stream of Mutations](./images/fig-13-stream-of-mutations.jpeg "fig. 13 - Stream of Mutations")
-
-{ fig.13 - a tape of events having "ON" and "OFF" values and a phone at
-the end with a happy face 😁 on the screen and a lit lightbulb }
+![fig.13 - Stream of Mutations](./images/fig-13-stream-of-mutations.png "fig. 13 - Stream of Mutations")
 
 Cold _Light Switch_ clients, those are the clients that have never been
 synced with the server, will get updated as soon as they establish
@@ -619,10 +584,7 @@ advanced data model, and since we're in the spirit of exercising our theory
 knowledge on examples, let's try it on a different kind of application.
 Let's build a _To-do List_ app!
 
-![fig.14 - To-do List App](./images/fig-14-to-do-list-app.jpeg "fig. 14 - To-do List App")
-
-{ fig.14 - an isometric phone in someone's hand with a few checklist items
-on the screen; some checked, some left un-checked }
+![fig.14 - To-do List App](./images/fig-14-to-do-list-app.png "fig. 14 - To-do List App")
 
 #### 3.2.1 Example (To-do List App Data-model)
 
@@ -728,10 +690,7 @@ So, if a user creates a new task in the app, app will emit an `Sync.Event` over
 the network. _Note: again, I'm going to use JSON-like notation to describe
 objects with values_.
 
-![fig.15 - Adding a To-do Item](./images/fig-15-adding-a-to-do-item.jpeg "fig. 15 - Adding a To-do Item")
-
-{ fig.15 - an isometric phone in someone's hand and a thumb tapping on the (+)
-icon next to an item with a text spelling "Buy milk" }
+![fig.15 - Adding a To-do Item](./images/fig-15-adding-a-to-do-item.png "fig. 15 - Adding a To-do Item")
 
 ```javascript
 { // event structure
@@ -746,10 +705,7 @@ icon next to an item with a text spelling "Buy milk" }
 If a user marks the task as completed, app will generate and emit an
 event looking like so:
 
-![fig.16 - Marking an Item as Completed](./images/fig-16-marking-an-item-as-completed.jpeg "fig. 16 - Marking an Item As Completed")
-
-{ fig.16 - an isometric phone in someone's hand and a thumb tapping on the
-checkmark next to the item }
+![fig.16 - Marking an Item as Completed](./images/fig-16-marking-an-item-as-completed.png "fig. 16 - Marking an Item As Completed")
 
 ```javascript
 { // event structure
@@ -801,7 +757,7 @@ is to broadcast those exact changes to other peers. These events are
 received by all active clients, and as long as the clients remain
 connected to the server, they are going to have a consistent dataset.
 
-![fig.17 - Streaming To-do List Mutations](./images/fig-17-streaming-to-do-list-mutations.jpeg "fig. 17 - Streaming To-do List Mutations")
+![fig.17 - Streaming To-do List Mutations](./images/fig-17-streaming-to-do-list-mutations.png "fig. 17 - Streaming To-do List Mutations")
 
 { fig.17 - a tape of to-do item mutations with a phone having a smily face
 on the screen and a few checked items below }
@@ -811,10 +767,7 @@ events which are important to reconstruct the dataset. What good is
 an `Sync.Event` telling that a task was completed to a client that never saw
 the original task to begin with?
 
-![fig.18 - Missing Events](./images/fig-18-missing-events.jpeg "fig. 18 - Missing Events")
-
-{ fig.18 - a tape of to-do item mutations with a phone having a puzzled
-face 🤔 and a checkmark next to "?????????????" }
+![fig.18 - Missing Events](./images/fig-18-missing-events.png "fig. 18 - Missing Events")
 
 Such client is considered _"out-of-sync"_.
 
@@ -834,9 +787,7 @@ mutate any of the existing events once they have been written down. Or another
 way to look at the persistent stream is like a journal of all the events
 that have happened.
 
-![fig.19 - Persistent Stream](./images/fig-19-persistent-stream.jpeg "fig. 19 - Persistent Stream")
-
-{ fig.19 - draw a tape of events held together by two reels }
+![fig.19 - Persistent Stream](./images/fig-19-persistent-stream.png "fig. 19 - Persistent Stream")
 
 A lot of distributed databases are married to this idea, their performance is
 better, when you don't mutate existing records. In the
@@ -936,11 +887,7 @@ told us it has. Now client knows exactly which events it needs to pull
 from the server (based on a _diffed_ set of `seq`) in order to
 get to a consistent state with other peers.
 
-![fig.20 - Sequenced Events](./images/fig-20-sequenced-events.jpeg "fig. 20 - Sequenced Events")
-
-{ fig.20 - draw two streams (tapes), a server stream and a client stream;
-server stream has all events in the stream, whereas client has a hole
-for the period when it was offline }
+![fig.20 - Sequenced Events](./images/fig-20-sequenced-events.png "fig. 20 - Sequenced Events")
 
 What better way to test this theory, than through an example, huh? Say we've
 got a few clients connected to the server, and server's stream is
@@ -1035,10 +982,7 @@ If we have to pick a name for this process of turning model mutations into
 synchronize-able (syncable for short) `Sync.Events`, let's call it
 _"Outbund Reconciliation"_.
 
-![fig.21 - Outbound Reconciliation](./images/fig-21-outbound-reconciliation.jpeg "fig. 21 - Outbound Reconciliation")
-
-{ fig.21 - a list of todo items on the left with an arrow pointing to
-events on the center and another arrow pointing at the stream on the right}
+![fig.21 - Outbound Reconciliation](./images/fig-21-outbound-reconciliation.png "fig. 21 - Outbound Reconciliation")
 
 One of the spots to put the `Sync.Event` creation logic is where we take the user
 actions, in the heart of our application's logic -- that's in the to-do
@@ -1050,9 +994,6 @@ instance methods and the `Sync.Event` model, you'll find some resemblance.
 properties define the arguments we pass into the methods.
 
 ![fig.22 - Resemblance Between Event and List](./images/fig-22-resemblance-between-event-and-list.png "fig. 22 - Resemblance Between Event and List")
-
-{ fig.22 - a screenshot of `Todo.List` and `Sync.Event` class definition
-  with arrows pointing out similarities }
 
 ```swift
 public class List: NSObject {
@@ -1150,10 +1091,7 @@ What do other clients do with `Sync.Events`, once they receive them from
 the server? These `Sync.Events` have to be turned back into object. It's a
 process we can name _"Inbound Reconciliation"_.
 
-![fig.23 - Inbound Reconciliation](./images/fig-23-inbound-reconciliation.jpeg "fig. 23 - Inbound Reconciliation")
-
-{ fig.23 - same as figure 20. but mirrored; server on the left, sending events
-drawn in the middle, turning into a checklist }
+![fig.23 - Inbound Reconciliation](./images/fig-23-inbound-reconciliation.png "fig. 23 - Inbound Reconciliation")
 
 The incoming events (pushed via transport) come in through the transport
 delegate method, implemented in the sync client:
@@ -1362,9 +1300,7 @@ trying to publish the events directly, we can put them into a queue
 (`Sync.enqueue(event)`) that gets drained with publication
 (`Sync.client.pulish()`)
 
-![fig.24 - Queuing Outbound Events](./images/fig-24-queuing-outbound-events.jpeg "fig. 24 - Queuing Outbound Events")
-
-{ fig.24 - Draw a queue between checklist and stream }
+![fig.24 - Queuing Outbound Events](./images/fig-24-queuing-outbound-events.png "fig. 24 - Queuing Outbound Events")
 
 Here's the small piece of code to support the theory:
 
@@ -1430,9 +1366,7 @@ Why would we want other clients to know of our indecisions with the task
 completeness? We don't want to pollute the stream with these intermediate
 events.
 
-![fig.25 - Polluted Stream](./images/fig-25-polluted-stream.jpeg "fig. 25 - Polluted Stream")
-
-{ fig.25 - Draw a tape of stinky events -- green smoke coming out of them? }
+![fig.25 - Polluted Stream](./images/fig-25-polluted-stream.png "fig. 25 - Polluted Stream")
 
 In order to avoid that, we'd have to coalesce the changes we made on the
 model. This is a process known as reducing the
@@ -1507,10 +1441,7 @@ when one of the other clients had already deleted the same task. The
 which would surface up on other clients and cause conflicts in the
 inbound reconciliation process.
 
-![fig.26 - Conflict](./images/fig-26-conflict.jpeg "fig. 26 - Conflict")
-
-{ fig.26 - Draw a tape with a few events then ending with a delete event
-written before the update event }
+![fig.26 - Conflict](./images/fig-26-conflict.png "fig. 26 - Conflict")
 
 Here are a few ways to resolve a conflict like that:
 
@@ -1559,9 +1490,7 @@ When the model reconciles with events the outcome will always be the same:
   defined `Sync.Event.seq`;
 - task object mutations will be applied in the same manner on all clients;
 
-![fig.27 - Total Order](./images/fig-27-total-order.jpeg "fig. 27 - Total Order")
-
-{ fig.27 - Draw soldiers, standing in line in multiple rows. }
+![fig.27 - Total Order](./images/fig-27-total-order.png "fig. 27 - Total Order")
 
 ### 5.1 Total Order With Batched Sequential Writes
 
@@ -1574,10 +1503,7 @@ no other clients should be able to write their events for the time being,
 because that would interleave the events on stream and could cause the model
 inconsistency (race-conditions).
 
-![fig.28 - Exclusive Write Access](./images/fig-28-exclusive-write-access.jpeg "fig. 28 - Exclusive Write Access")
-
-{ fig.28 - same as fig. 10, but only the first part, where one path has
-long marks in the lane (among others) connected to the database }
+![fig.28 - Exclusive Write Access](./images/fig-28-exclusive-write-access.png "fig. 28 - Exclusive Write Access")
 
 This does not satisfy our requirement we set out in the **chapter 3.1**
 for having fast writes on the server. As we pointed out, having an exclusive
@@ -1609,10 +1535,7 @@ server. This might make those `Todo.Tasks` fall out of context. Depending on
 what the user wants -- it's debatable, maybe the order of our `Todo.Task`
 objects is not really that important to our use case, but what if we say it is?
 
-![fig.29 - Outdated Tasks](./images/fig-29-outdated-tasks.jpeg "fig. 29 - Outdated Tasks")
-
-{ fig.29 - Draw a phone with the task list where last three tasks have spider
-web on them ...  }
+![fig.29 - Outdated Tasks](./images/fig-29-outdated-tasks.png "fig. 29 - Outdated Tasks")
 
 ### 5.2 Causal Order
 
@@ -1647,10 +1570,7 @@ synchronization can't guarantee there won't be any time skew. Plus, relying
 on external synchronization processes is just an extra moving piece in the
 whole machine that could fail.
 
-![fig.30 - Universal Time](./images/fig-30-universal-time.jpeg "fig. 30 - Universal Time")
-
-{ fig.30 - Draw a few time pieces with a slight random time skew on
-  all of them }
+![fig.30 - Universal Time](./images/fig-30-universal-time.png "fig. 30 - Universal Time")
 
 Another contradicting fact is that users could mess with their system time,
 by manually overriding it, during the use of the app. It just makes our
@@ -1737,9 +1657,7 @@ public struct Sync {
 }
 ```
 
-![fig.31 - Version Vectors](./images/fig-31-version-vectors.jpeg "fig. 31 - Version Vectors")
-
-{ fig.31 - Draw version vectors as events pointing back to previous events. }
+![fig.31 - Version Vectors](./images/fig-31-version-vectors.png "fig. 31 - Version Vectors")
 
 Our model doesn't require this, but we could equip the `Sync.Event` structure
 with an additional `clientId`, a value that'd be unique across the clients.
