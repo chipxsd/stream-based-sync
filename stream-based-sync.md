@@ -1671,13 +1671,20 @@ with an additional `clientId`, a value that'd be unique across the clients.
 That would allow us to cluster events published by a distinct client together,
 even when events are interleaved with the same `precedingSeq` and `clientSeq`.
 
-With causality tracking our `Sync.Events` can finally be reconciled in the
+With causality tracking, our `Sync.Events` can finally be reconciled in the
 exact order as they were generated -- or what we like to call _"causal order"_.
 That's true even if the events on stream are written completely out-of-order.
+Since this allows us to publish the `Sync.Events` on the stream in an unordered
+fashion, there is no more need for sequential batched writes to our database,
+meaning that we comply with the _"fast-writes"_ requirement that we
+mentioned in the **chapter 3.1**.
+
 The other benefit of the casual order is also that it minimize the conflicts
 that can occur in concurrent systems, since the order will assure outdated
 events (queued and published later) are applied onto the `Todo.List` model
 after the events the client saw when it generated.
+
+![fig.32 - Outdated Events](./images/fig-32-outdated-events.png "fig. 32 - Outdated Events")
 
 Due to the new ordering regime, we need to fix a few parts of our code. The
 code that reduces the edit distance:
@@ -1702,14 +1709,22 @@ public struct Todo {
                 // etc...
 ```
 
+Now, both inbound and outbound processes take the `Sync.Events` in an order
+that makes a little more sense.
+
+![fig.33 - Sorted Events](./images/fig-33-sorted-events.png "fig. 33 - Sorted Events")
+
 The whole inbound and outbound reconciliation process and our data structure
 is essentially what [version vectors](https://en.wikipedia.org/wiki/Version_vector)
-are, we just used different names and terms:
+describe, we just used different names and terms:
 
-* `precedingSeq` pointing to happened-before event's `seq` is **=** vector pointing
-  at a certain version.
-* Reconciliation process that get's our model up to date **=** update rules
+* `Sync.Event.precedingSeq` pointing to happened-before event's `seq` is
+  **==** vector pointing at a certain version of the object.
+* Reconciliation process that gets our model up to date **==** update rules
   replicas use to synchronize their data.
+* The other difference compared to other implementations that use version
+  vectors for causality tracking is that we don't encode the happened-before
+  information as a copy of a previously reconciled state of the object.
 
 ## 6. Advantages
 
