@@ -3,8 +3,8 @@
 ## 1. Introduction
 
 I'd like to talk about a very specific approach on how to synchronize
-shared data across devices using Stream-Based Data Synchronization. It's
-a known concept that's been implemented in various ways in the past decades.
+shared data across devices using Stream-Based Data Synchronization. It's not a
+common concept, but it has been implemented in various ways in the past decades.
 I wanted to present this concept in a more attractive way, by providing
 code examples and lovely diagrams.
 
