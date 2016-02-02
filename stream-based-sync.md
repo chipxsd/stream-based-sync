@@ -1,18 +1,17 @@
-# Stream Based Data Synchronization
+# Stream-Based Data Synchronization
 
 ## 1. Introduction
 
 I'd like to talk about a very specific approach on how to synchronize
-shared data across devices using Stream Based Data Synchronization. It's
-a known concept that's been implemented in various different ways in the
-past decades. But whenever I try to explain this concept to friends, I lose
-them. So I wanted to present this concept in a more attractive way, by
-providing code examples and lovely diagrams.
+shared data across devices using Stream-Based Data Synchronization. It's
+a known concept that's been implemented in various ways in the past decades.
+I wanted to present this concept in a more attractive way, by providing
+code examples and lovely diagrams.
 
 So in this publication, I'll guide you through what data synchronization is,
 how to implement a very basic app that synchronizes with the server, essentially
 do all the ground work first, so that you'll get the idea what kind of data we
-even deal with, how transmit it across the network, then slowly build up to
+even deal with, how to transmit it across the network, then slowly build up to
 the full solution where I'll demonstrate the behavior, expose caveats and
 talk a little about where this concept works best and where it falls short.
 
@@ -21,8 +20,8 @@ talk a little about where this concept works best and where it falls short.
 ### 2.1 What is Data Synchronization?
 
 Term _synchronization_ in computer science is a bit ambiguous, it can for
-example mean coordination of simultaneous processes to complete a task in
-the correct order (to avoid any potential race conditions). But in this topic
+example, mean coordination of simultaneous processes to complete a task in
+the correct order (to avoid any potential race conditions). But in this topic,
 we'll be mainly talking about data synchronization, as in having the
 same state across multiple clients.
 
@@ -36,13 +35,13 @@ pretty basic example of data synchronization over network.
 
 ![fig.1 - Example App "Light Switch"](./images/fig-01-lightswitch-app.gif "fig. 1 - Example App 'Light Switch'")
 
-Solutions for such problem come pretty natural to experienced engineers, but
+Solutions for such problem come pretty naturally to experienced engineers, but
 for some it may not be as trivial. So let's play with the _Light Switch_
 sample app idea for a little. To narrow down the requirements for this app,
 let's say that the light switch state has to be shared across devices
 via TCP/IP network.
 
-**Note:** _Instead of TCP/IP we could of course use any other available
+**Note:** _Instead of TCP/IP we could, of course, use any other available
 technology/protocol such as Bluetooth, AdHoc WiFi, Multi-peer Connectivity
 on Apple devices, etc._
 
@@ -51,12 +50,12 @@ on Apple devices, etc._
 Let's make a list of components we need to have to achieve this:
 
 - **a simple server** -- which can be a lightweight service (process)
-  written in C using standard library, or something written in higher-level
+  written in C using the standard library, or something written in higher-level
   languages (Scala, Ruby, Python, Java, etc.) using off-the-shelf libraries.
   For the sake of simplicity, we'll use a simple web socket server in
   Ruby that accepts a JSON structure from clients with _Light Switch_
   state information, and fans out the new state to other clients.
-  No persistence of the _Light Swtich_ state is required.
+  No persistence of the _Light Switch_ state is required.
 
 - **mobile clients** -- an app that connects to our lightweight server
   capable of receiving and sending _Light Switch_ state changes through
@@ -73,7 +72,7 @@ Both client side and server side code should be very simple to implement.
 Let's check the client side code first. We mentioned we're going to use
 [WebSockets](https://en.wikipedia.org/wiki/WebSocket) to keep a persistent
 connection between the client and the server. For me the one that kind of sticks
-out is [Starscream](https://github.com/daltoniam/Starscream), it's a clean,
+out is [Starscream](https://github.com/daltoniam/Starscream), it's clean,
 very easy to use WebSocket client written in Swift.
 
 We shouldn't need more than two functions to do the job of sending and
@@ -133,7 +132,7 @@ public func websocketDidReceiveMessage(socket: WebSocket, text: String) {
 
 The UI controller implementation should be symmetrical to the transport
 layer implementation. Again, two functions -- one sending the controller's
-Light Switch state to the transport layer whenever user taps the button,
+Light Switch state to the transport layer whenever the user taps the button,
 and the other one should be an implementation of the delegate
 callback that the transport layer calls, which toggles the switch in the UI.
 
@@ -200,7 +199,7 @@ EM::WebSocket.run(:host => "0.0.0.0", :port => 8080) do |ws|
 end
 ```
 
-There's two main parts to the code above. We used channels to construct
+There're two main parts to the code above. We used channels to construct
 a notion of followers (or subscribers, if you will), and when a client
 connects to the server it gets added to the channel (`@channel.subscribe`).
 Then, as soon as the server receives a light switch change (`ws.onmessage`)
@@ -229,8 +228,8 @@ to share the same state across devices, let's identify a few with examples:
   across clients; web, mobile, etc. Receiving messages and their delivery
   and read receipts from other participants on all the clients.
 - **photo sharing** -- shared photo stream with all subscribers.
-- **file sharing** -- backing up a content of a folder from local filesystem
-  to cloud.
+- **file sharing** -- backing up a content of a folder from the local
+  filesystem to the cloud.
 - online **text** and **spreadsheet editors** -- having multiple users
   editing the same text or spreadsheet document at the same time. Seeing
   the text coming in as users type in different paragraphs.
@@ -247,7 +246,7 @@ what kind of data we even deal with in those cases.
 
 We mentioned **file sharing** -- that means file content and directory structure
 replication across clients. If I add a file to the _shared_ folder on one
-of my computers, I'd like that file to appear on other computer too. Same if
+of my computers, I'd like that file to appear on the other computer too. Same if
 I modify that file on one computer, I want that file along with its content
 to be copied to other machines too. The easiest way to implement this would
 be to copy the whole directory (along with all the files and sub-directories)
@@ -256,7 +255,7 @@ a file). This would work, but that simply does not scale. If I keep adding
 files to the directory, the copy process would become longer with the count
 of files.
 
-Better way to synchronize a file / directory structure is to compare them,
+A better way to synchronize a file / directory structure is to compare them,
 recognize differences and only copy what doesn't match. This is what we call
 [file-synchronization](https://en.wikipedia.org/wiki/File_synchronization),
 [Rsync](https://en.wikipedia.org/wiki/Rsync) is a very nice example of this.
@@ -303,12 +302,12 @@ describe and apply changes to text files. But at the end of the day,
 we **synchronized document's content** change.
 
 What about our _Light Switch_ app example (from chapter 2.1.1)? It's nothing
-more than **data-model synchronization**.
+more than **data model synchronization**.
 
-![fig.4 - Data Model](./images/fig-04-data-model.png "fig. 4 - Data Model")
+![fig.4 - Data Model](./images/fig-04-data model.png "fig. 4 - Data Model")
 
 As with file and document synchronization, we can just make a copy
-of the data-model and transfer it over the wire to other
+of the data model and transfer it over the wire to other
 clients, which is exactly what we did in our example app. We could afford
 this in our _Light Switch_ example app, seeing that the model was
 extremely small -- it's a single instance of a boolean value
@@ -321,22 +320,22 @@ expensive.
 
 ### 2.4 Approaches to Data Synchronization
 
-There are different ways to make our data up-to-date, as we've learned in the previous chapter.
-The most naive way is to just **copy it**,
-which in a lot of cases, is less than ideal. Better way to get the existing
+There are different ways to make our data up-to-date, as we've learned
+in the previous chapter. The most naive way is to just **copy it**,
+which in a lot of cases, is less than ideal. A better way to get the existing
 data up-to-date is to only **apply changes** to it. Let's examine
 both approaches.
 
 #### 2.4.1 Absolute Synchronization (copying)
 
-**Copying** and replacing the data (file, document, data-model) is perfectly
-fine, when we don't care for the amount of data we need to transfer, since
-the server will always return a fully populated dataset. Also works good when
-the synchronization is uni-directional, meaning the client
-always asks the server for the source of truth (e.g. refreshing the
-weekly weather forecast, or refreshing a list of RSVPs).
+**Copying** and replacing the data (file, document, data model) is perfectly
+fine, when we don't care for the amount of data we need to transfer since
+the server will always return a fully populated dataset. Also works well when
+the synchronization is uni-directional, meaning the client always asks the
+server for the source of truth (e.g. refreshing the weekly weather forecast,
+or refreshing a list of RSVPs).
 
-This type of synchronization is also known as **wholesale transfer**.
+This type of synchronization is also known as the **wholesale transfer**.
 
 The other drawback of copy based synchronization for clients is not only
 the potential higher bandwidth cost due to transmitting the same data
@@ -351,19 +350,19 @@ for as much as there are elements in both sets (which gives us the O(n ⋁ m)).
 
 Suppose you're invited to a dinner party and you ask the receptionist
 _"Who's here?"_. That person will respond: _"There's Alex, Blake, Caroline,
-Dan, Emily and George."_. In your mind you've made a list of guests from what
+Dan, Emily and George."_. In your mind, you've made a list of guests from what
 you just heard. Now one of the guests leaves, but you weren't paying
 attention, so you go ask the receptionist, _"What about now?"_, and the
-person responds: _"There's Alex, Caroline, Dan, Emily and George"_ -- it's
+person responds: _"There's Alex, Caroline, Dan, Emily, and George"_ -- it's
 like talking to an idiot. So in order to figure out what has changed, if
 anyone left or someone new joined the party, you'd need to remember the
-list of guests from before and run it against the one you just heard, and
+list of guests from before and run it against the one you just heard and
 check for differences.
 
 #### 2.4.2 Relative Synchronization (based on changes)
 
 You'd be better off with an answer like: _"Blake just left"_, instead of
-listening the person go through the whole list of people that are still
+listen to the person go through the whole list of people that are still
 at the party. That's assuming the person you're asking knew when was
 the last time you were paying attention. It just seems like a lot of
 work for the receptionist to keep track of what others take notice off.
@@ -384,8 +383,8 @@ as deltas.
 ### 2.5 What are Deltas?
 
 Delta encoding is a way to describe differences between two datasets
-(file, document, data-model, etc.). We can use these short pieces of
-information to apply onto our dataset (in form of mutations) to
+(file, document, data model, etc.). We can use these short pieces of
+information to apply to our dataset (in a form of mutations) to
 get it up-to-date and from what we've just learned, is that it can
 significantly reduce the data redundancy in synchronization processes.
 
@@ -396,8 +395,8 @@ significantly reduce the data redundancy in synchronization processes.
 Of course, depending on our application, we'd want to encode the deltas
 in the way that is suitable for our application data model. Taking a look
 at the few examples we've set out in **chapter 2.3**, applications can
-work with pure arbitrary data (binary files), document (text files, xml,
-spread sheets), data-model (data structures), etc.
+work with pure arbitrary data (binary files), document (text files, XML,
+spreadsheets), data model (data structures), etc.
 
 But generally, we'd want our deltas to give us instructions on how to
 modify our old data set, so that it will match the new one, based on three
@@ -449,7 +448,7 @@ JSON format. We can serialize the delta information in any format
 that suits the purpose. Here are a few from the top of my head:
 [Thrift](https://en.wikipedia.org/wiki/Apache_Thrift),
 [Protobuff](https://en.wikipedia.org/wiki/Protocol_Buffers),
-[CapnProto](https://github.com/sandstorm-io/capnproto), however you can chose
+[CapnProto](https://github.com/sandstorm-io/capnproto), however, you can choose
 to implement your own proprietary serialization protocol.
 
 We could use the exact same delta encoding approach to describe a change in
@@ -462,7 +461,7 @@ where we used the unified diff patch to update a single line of code.
 ```
 
 Don't be mistaken, the unified diff patch is still a _delta_, encoded
-differently though, but we could get rid of both, the before and after values
+differently, though, but we could get rid of both, the before and after values
 (the lines that start with `---` and `+++`) in favor of inserting a single
 character at the right location, which gives us the same result:
 
@@ -507,7 +506,7 @@ names:
 }
 ```
 
-## 3. Stream Based Synchronization
+## 3. Stream-Based Synchronization
 
 There are plenty of approaches to get our data model synchronized with the
 server, we'll be taking a closer look at the synchronization approach that
@@ -546,7 +545,7 @@ A system can grow with the number of users it serves, as does with
 the amount of the content generated its by users. So when modeling
 the data structures (schema), we must also account for data distribution
 and replication, which should be easy and painless. Having a distributable
-system not only provides fail safety -- in case of outages and data
+system not only provides fail safety -- in a case of outages and data
 corruption -- but it also makes it easy to employ load balancing approaches.
 
 ![fig.11 - Distributed System](./images/fig-11-distributed-system.png "fig. 11 - Distributed System")
@@ -555,13 +554,13 @@ A feature we tend to forget about is also **offline support**.
 Synchronization logic should not prevent the application logic from operating
 autonomously. Your synchronized photo library (camera roll) is accessible on
 all your mobile device. Imagine if you couldn't take photos, edit or
-remove them from your library, when you're out of the network conectivity?
+remove them from your library, when you're out of the network connectivity?
 
 ![fig.12 - Offline Support](./images/fig-12-offline-support.png "fig. 12 - Offline Support")
 
 ### 3.2 Stream of Mutations
 
-Finally, we get to talk about stream based synchronization. Remember how
+Finally, we get to talk about stream-based synchronization. Remember how
 we synchronize our _Light Switch_ apps in **chapter 2.1**? Clients have a
 bi-directional TCP connection to the server, and every time a user flips
 the switch, that change -- the mutation on the model -- is sent to the
@@ -591,7 +590,7 @@ Let's build a _To-do List_ app!
 
 ![fig.14 - To-do List App](./images/fig-14-to-do-list-app.png "fig. 14 - To-do List App")
 
-#### 3.2.1 Example (To-do List App Data-model)
+#### 3.2.1 Example (To-do List App Data model)
 
 Let's write down use cases and support them with a data model:
 
@@ -655,7 +654,7 @@ They support all user actions we care for:
   or a new color coded label;
 - [x] deleting an existing task from the list;
 
-#### 3.2.2 Example (To-do List Sync Data-model)
+#### 3.2.2 Example (To-do List Sync Data model)
 
 So how do we describe these user actions, so that we can transmit them
 over the network? User actions cause mutations to our model (which are
@@ -663,9 +662,9 @@ over the network? User actions cause mutations to our model (which are
 deltas. Well, I prefer to use the word `Sync.Event` to symbolize an action.
 
 How would an event structure look like in our code? It is pretty close to
-the `Todo.Task` model. Also keep in mind that objects we want to use in our
+the `Todo.Task` model. Also, keep in mind that objects we want to use in our
 synchronization logic should be simple concrete objects conforming to some
-serializable and de-serializable protocol (of your choice), since we'll be
+serializable and de-serializable protocol (of your choice) since we'll be
 transmitting them over the network.
 
 ```swift
@@ -691,8 +690,8 @@ model (`Todo.Task`), since they are pretty much symmetrical? It's because
 we'll need a little more data that will help us at the sync process, but
 we'll get to that later.
 
-So, if a user creates a new task in the app, app will emit an `Sync.Event` over
-the network. _Note: again, I'm going to use JSON-like notation to describe
+So, if a user creates a new task in the app, the app will emit a `Sync.Event`
+over the network. _Note: again, I'm going to use JSON-like notation to describe
 objects with values_.
 
 ![fig.15 - Adding a To-do Item](./images/fig-15-adding-a-to-do-item.png "fig. 15 - Adding a To-do Item")
@@ -769,7 +768,7 @@ on the screen and a few checked items below }
 
 However, if a client comes online a few moments later, it might've missed
 events which are important to reconstruct the dataset. What good is
-an `Sync.Event` telling that a task was completed to a client that never saw
+a `Sync.Event` telling that a task was completed to a client that never saw
 the original task to begin with?
 
 ![fig.18 - Missing Events](./images/fig-18-missing-events.png "fig. 18 - Missing Events")
@@ -797,8 +796,8 @@ that have happened.
 A lot of distributed databases are married to this idea, their performance is
 better, when you don't mutate existing records. In the
 [NoSQL](https://en.wikipedia.org/wiki/NoSQL) world, more specifically
-in column-oriented databases, data structure is (naively) considered as
-a table with ever growing rows. Unfortunately our data might not
+in column-oriented databases, the data structure is (naively) considered as
+a table with ever growing rows. Unfortunately, our data might not
 be replicated in the same manner across all distributed database nodes and
 clusters -- there's no way to guarantee the same order in them as values
 get written, this is due to the concept known as
@@ -834,11 +833,11 @@ transferring a lot more data, than it's truly necessary.
 
 ### 3.5 Event Discovery
 
-This is where sequencing comes in handy. Giving an `Sync.Event` a unique
+This is where sequencing comes in handy. Giving a `Sync.Event` a unique
 server-generated cardinal value, we could leverage it as a
 lightweight index to our events. In math, this is also called a countable
-ordered index set, where the value of n-th element is equal to its zero
-based index n. The maximum value which is also the value of the last
+ordered index set, where the value of the n-th element is equal to
+its zero-based index n. The maximum value which is also the value of the last
 element in such index set denotes its size (the count of elements).
 
 Let's extend our `Sync.Event` model with a new property called `seq`:
@@ -861,13 +860,13 @@ public struct Sync {
 }
 ```
 
-As clients generate and upload `Sync.Events`, server picks them up, assigns
+As clients generate and upload `Sync.Events`, the server picks them up, assigns
 them a sequence value and persists them to storage. With every event written to
-storage, sequence value is incremented. First event written to the stream has a
-sequence value of `seq: 0`, second one get the value of `seq: 1`, etc. You
-get the idea how incrementing integers goes. And yes, the work of assigning
-sequence values can be put off on the database, if the database supports
-auto incremented record sequencing.
+storage, the sequence value is incremented. The first event written to the
+stream has a sequence value of `seq: 0`, second one get the value of `seq: 1`,
+etc. You get the idea how incrementing integers goes. And yes, the work of
+assigning sequence values can be put off on the database, if the database
+supports auto incremented record sequencing.
 
 For a recently online client to figure out which events it might've missed,
 a basic inquiry of "what's the last sequence value written to the stream?"
@@ -1093,7 +1092,7 @@ self.syncClient.publish(event)
 ### 4.2 Inbound Reconciliation
 
 What do other clients do with `Sync.Events`, once they receive them from
-the server? These `Sync.Events` have to be turned back into object. It's a
+the server? These `Sync.Events` have to be turned back into objects. It's a
 process we can name _"Inbound Reconciliation"_.
 
 ![fig.23 - Inbound Reconciliation](./images/fig-23-inbound-reconciliation.png "fig. 23 - Inbound Reconciliation")
@@ -1132,7 +1131,7 @@ we're not sure anymore which part of the `Todo.List` class logic should be
 in charge of mutating the model, should it be the `apply()` method or the
 other three methods? We don't want to write the same code twice, nor we want
 the logic responsible for calling `apply()` knowing anything about the
-`Todo.List` model, except that's it's capable of applying events. What we've
+`Todo.List` model, except that it's capable of applying events. What we've
 done there could be considered an anti-pattern by some critics.
 
 The three methods (`create()`, `update()` and `remove()`) have two parts
@@ -1192,7 +1191,7 @@ private func apply(event: Sync.Event) -> Bool {
 ```
 
 This way, the user action methods are now only in charge of vending
-vending `Sync.Events`, which solves the first anti-pattern. We can also
+`Sync.Events`, which solves the first anti-pattern. We can also
 delegate the `Sync.Event` sending by using protocols, this way whoever owns
 the `Todo.List` instance, doesn't have to be in charge of sending the
 `Sync.Event` to the transport logic (event publication) -- this solves the
@@ -1297,7 +1296,7 @@ in case the connection to server's down. And when clients miss relevant
 events, they get in an out-of-sync state.
 
 One way to avoid this is by not allowing any user action on the `Todo.List`
-data model, but this completely disables the use of the app while user
+data model, but this completely disables the use of the app while the user
 doesn't have connectivity.
 
 We have to make sure those events get published at all costs. Instead of
@@ -1357,7 +1356,7 @@ public struct Sync {
 ```
 
 With offline support, we can now create tasks, modify them (update the
-complete state, color label and its title) even when the client doesn't
+complete state, color label, and its title) even when the client doesn't
 have the connection to the server.
 
 ### 4.4 Reducing the Edit Distance
@@ -1383,13 +1382,13 @@ different models?
 
 The best place to perform the coalescing process would be where we collect
 (queue) our events for publication, which is in our
-`Sync.Client.enqueue(event)` method. The coalescing logic however we can
-implement straight in the `Sync.Event` class itself. The alghorithm should be
+`Sync.Client.enqueue(event)` method. The coalescing logic, however, we can
+implement straight in the `Sync.Event` class itself. The algorithm should be
 relatively simple, it just needs to follow a small set of rules:
 
 1. **Update Event** for an object should merge the values of the
    **Insert Event** and other **Update Events** into a single **Insert Event**.
-2. If there are only **Update Events** in queue, and no **Insert Events**
+2. If there are only **Update Events** in the queue, and no **Insert Events**
    beforehand, values are merged into a single **Update Event**.
 3. Last **Update Event** defines the final state of the property it mutates
    on the object.
@@ -1428,12 +1427,12 @@ public struct Sync {
 }
 ```
 
-With event merging process, client will try to reduce the edit distance of
+With event merging process, the client will try to reduce the edit distance of
 queued events, thus making the stream a little cleaner.
 
 ### 4.5 Conflict Resolution
 
-In concurrent systems a conflict arises every time two or more nodes (clients
+In concurrent systems, a conflict arises every time two or more nodes (clients
 in our scenario) work on the same resource at the same time, and one of the
 nodes takes the action before the other one does. You can also call this a
 race condition or even say that one of the nodes wasn't fully up-to-date
@@ -1443,7 +1442,7 @@ Our example application could potentially have to deal with a conflict where
 one of the clients wants to update the `completed` state of a `Todo.Task`
 when one of the other clients had already deleted the same task. The
 `Sync.Event.Type.Update` event could get written to the stream,
-which would surface up on other clients and cause conflicts in the
+which would surface upon other clients and cause conflicts in the
 inbound reconciliation process.
 
 ![fig.26 - Conflict](./images/fig-26-conflict.png "fig. 26 - Conflict")
@@ -1452,9 +1451,9 @@ Here are a few ways to resolve a conflict like that:
 
 * Bring the deleted task back to life, by ignoring the delete event that
   caused the `Todo.Task` to disappear, since update event came in later --
-  also known as, **last writer wins**.
+  also known as, **the last writer wins**.
 * Delete event tops any other events that come in later for the same task --
-  known as, **first writer wins**.
+  known as, **the first writer wins**.
 * Surface the conflict to the user in a form of a UI dialog, and letting
   the **user decide what to do**: "Task was deleted by another user, revert
   the change?"
@@ -1462,7 +1461,7 @@ Here are a few ways to resolve a conflict like that:
 All are valid conflict resolutions, but most would agree, bothering users
 to manually resolve conflicts is not the best experience. It's safe to say
 that people are used to the second conflict resolution approach -- trying
-to write a comment on Facebook under a post that just got would be exact
+to write a comment on Facebook under a post that just got would be an exact
 analog to this. And our logic already supports this. If we go back to
 our `Todo.List.apply(event: Sync.Event)` implementation, you'll see
 that `case .Update` is impossible, as the task cannot even be found
@@ -1501,7 +1500,7 @@ be the same:
 ### 5.1 Total Order With Batched Sequential Writes
 
 In this type of event order we need to assure that queued events get
-published by the clients in the same order they were put on queue
+published by the clients in the same order they were put on the queue
 (client-side). Therefore exclusive write access is required by any client
 wanting to send their queued events to the server. Allowing other clients to
 write their events during that time would risk interleaving the events on
@@ -1515,8 +1514,8 @@ write access blocks other clients, which can ruin the experience for other
 users.
 
 _Note: **Total order** also doesn't guarantee, the events will be put
-on stream as they were generated by all clients, what a **FIFO order** on
-the other hand would. But **FIFO order** can't be implemented with an
+on stream as they were generated by all clients, what a **FIFO order**, on
+the other hand, would. But **FIFO order** can't be implemented with an
 undetermined number of clients, nor does it provide a good experience,
 due to the requirement that batches be written in the same order as they
 were generated._
@@ -1547,11 +1546,11 @@ And since the order of `Todo.Tasks` should reflect the same order that the
 user **percieved** while creating them, then the total order comes out of the
 question. Events need to be reconciled with the model in the same order as
 the events were generated by the clients, and not in the order as they were
-published on the stream. I know, it's hard wrapping your head around that
-statement. So, does that mean that different clients may see different order?
+published in the stream. I know, it's hard wrapping your head around that
+statement. So, does that mean that different clients may see a different order?
 That’s exactly what that means.
 
-Due to the fact that the generated `Sync.Events` is the **effect** of user
+Due to the fact that the generated `Sync.Events` is the **effect** of the user
 responding to the UI and taking action, basically requires the `Sync.Events`
 to be applied onto the model under the same condition it was in when the
 events were generated by the author.
@@ -1716,10 +1715,10 @@ are, we just used different names and terms:
 
 We can just check off the requirements we set out in the **chapter 3.1**.
 
-* [x] Stream based synchronization is a nice way to have a **single shared
+* [x] Stream-based synchronization is a nice way to have a **single shared
       source of truth** where numerous clients can synchronize against.
-      This kind of model reduces the data redundancy compared to the user
-      centric data model, where most of the data is duplicated. If a server
+      This kind of model reduces the data redundancy compared to the
+      user-centric data model, where most of the data is duplicated. If a server
       needs to fan-out the same `Todo.Task` to all participants, it not only
       takes a lot of storage space, but also burns more CPU time.
 
@@ -1750,13 +1749,14 @@ We can just check off the requirements we set out in the **chapter 3.1**.
 * [x] Attributable to the distributable data and simplicity of the data
       structures, implementing **load balancing** is fairly easy.
 
-* [x] For the same reason that also makes our clients eventual consistent,
+* [x] For the same reason, that also makes our clients eventual consistent,
       which means that we allow clients to continue **operating offline**. Once
-      client comes back online, it will reconcile with the rest of the peers.
+      the client comes back online, it will reconcile with the rest
+      of the peers.
 
 ## 7. Disadvantages
 
-There's also cases where stream based synchronization falls short:
+There's also cases where stream-based synchronization falls short:
 
 * [x] Where server side implementation might be small and simple, client's
       synchronization logic is far **more sophisticated**.
@@ -1776,7 +1776,7 @@ There's also cases where stream based synchronization falls short:
 
 ## 8. Possible Optimizations
 
-Most drawbacks of the stream based synchronization are related to clients
+Most drawbacks of the stream-based synchronization are related to clients
 doing too much work. Partial-sync, which I mentioned as a solution to this
 nuisance, is not easy to implement. In most cases, it's an application specific
 problem, there's no generic approach to solve all cases.
@@ -1796,10 +1796,10 @@ load the last 10 events from the stream, since `seq` values don't relate
 to our `Todo.Task` objects. What the client could do is to carefully
 backtrack the stream -- read it in reverse in small chunks and
 stop, once the model satisfies the condition. This is not the ideal approach
-to implement partial-sync, we allow for streams to have a sparse and unordered
-distribution of events. Backtracking such a stream means that the client may
-run into a lot of un-processable events, because their preceding events are
-missing.
+to implementing partial-sync, we allow for streams to have a sparse and
+unordered distribution of events. Backtracking such a stream means that the
+client may run into a lot of un-processable events, because their preceding
+events are missing.
 
 As I pointed out in the Event Discovery, **chapter 3.5**, clients
 address events by their `seq` value, since that kind of an index is easy to
@@ -1817,18 +1817,18 @@ but that's for another time.
 
 ## Who Am I, What I Do?
 
-Allow me to introduce myself. My name is Klemen Verdnik. I've been programming
-from a very young age, and I've quickly become fascinated with low-level
-programming - things like writing audio and image processing routines,
-tight loop optimizations, anything where there's something to be processed
-and delivered in near real-time.
+My name is Klemen Verdnik. I've been programming from a very young age,
+and I've quickly become fascinated with low-level programming - things like
+writing audio and image processing routines, tight loop optimizations,
+anything where there's something to be processed and delivered
+in near real-time.
 
-As a teenager I built a ton of hobby projects, including my very own DSP
-powered digital graphic equalizer. One of my early employers was a high tech
-company from Slovenia called Ultra, where I had an opportunity to work
+As a teenager I built a ton of hobby projects, including my very own
+DSP-powered digital graphic equalizer. One of my early employers was a high
+tech company from Slovenia called Ultra, where I had an opportunity to work
 with many teams on various cool tech projects, such as a fleet management
 system called [TalkTrack](https://www.crunchbase.com/organization/telargo)
-(before smartphones were a thing) and later on a team that developed a mobile
+(before smartphones were a thing) and later on, a team that developed a mobile
 payment solution called [Margento](http://www.margento.com/solutions/mobile-payments)
 (before Apple pay was a thing).
 
@@ -1836,6 +1836,6 @@ Later I joined a start-up called vox.io, where we built a pretty cool
 [telephony](https://www.youtube.com/watch?v=kf2nrHIA2kY) /
 [messaging](https://www.youtube.com/watch?v=1B5i7lhX9Og) solution for the web
 and mobile devices. A few years later I helped start a company together with my
-collegues called [layer.com](http://layer.com), where we built an awesome
+colleagues called [layer.com](http://layer.com), where we built an awesome
 messaging platform. It's at Layer where I helped build the various
 synchronization protocols with a devotion bordering on obsession.
