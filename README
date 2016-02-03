@@ -1,0 +1,13 @@
+# Stream-based Data Synchronization
+
+This repository contains the source code I've written in support of the
+article on [Stream-based Data Synchronization](https://medium.com/@klemen.verdnik/stream-based-data-synchronization-41ff242327ec)
+I've published on [medium.com](http://medium.com). The publication talks about
+a specific way to synchronize a shared data model across devices by
+transmitting non-reconciled model changes over network, instead of fully
+hydrated, up-to-date objects. The approach is supported with code snippets
+written in Swift.
+
+If you have any questions or comments about this work, please contact me.
+
+— Klemen Verdnik
