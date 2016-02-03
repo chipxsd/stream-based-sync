@@ -2,11 +2,11 @@
 
 ## 1. Introduction
 
-I'd like to talk about a very specific approach on how to synchronize
-shared data across devices using Stream-Based Data Synchronization. It's not a
-common concept, but it has been implemented in various ways in the past decades.
-I wanted to present this concept in a more attractive way, by providing
-code examples and lovely diagrams.
+I’d like to talk about a very specific approach on how to synchronize shared
+data across devices using Stream-Based Data Synchronization. It’s not a common
+concept, but it has been implemented in various ways in the past decades.
+I wanted to present this concept in a more attractive way, from a little
+different angle, along with the code examples and lovely diagrams.
 
 So in this publication, I'll guide you through what data synchronization is,
 how to implement a very basic app that synchronizes with the server, essentially
@@ -1534,7 +1534,7 @@ onto an object, that was previously deleted).
 If queued events by an offline client got published with a significant delay
 (for example a day, or even worse, a week after a user generated them),
 the `Todo.Tasks` would appear at the bottom of the list, since those _late_
-events would receive a high `seq` value from the server. server. That might
+events would receive a high `seq` value from the server. That might
 make such `Todo.Tasks` fall out of context, and we don't want that -- assuming
 of course the order of `Todo.Tasks` tasks is important.
 
