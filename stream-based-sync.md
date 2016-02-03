@@ -763,9 +763,6 @@ connected to the server, they are going to have a consistent dataset.
 
 ![fig.17 - Streaming To-do List Mutations](./images/fig-17-streaming-to-do-list-mutations.png "fig. 17 - Streaming To-do List Mutations")
 
-{ fig.17 - a tape of to-do item mutations with a phone having a smily face
-on the screen and a few checked items below }
-
 However, if a client comes online a few moments later, it might've missed
 events which are important to reconstruct the dataset. What good is
 a `Sync.Event` telling that a task was completed to a client that never saw
