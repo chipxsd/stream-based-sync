@@ -304,7 +304,7 @@ we **synchronized document's content** change.
 What about our _Light Switch_ app example (from chapter 2.1.1)? It's nothing
 more than **data model synchronization**.
 
-![fig.4 - Data Model](./images/fig-04-data model.png "fig. 4 - Data Model")
+![fig.4 - Data Model](./images/fig-04-data-model.png "fig. 4 - Data Model")
 
 As with file and document synchronization, we can just make a copy
 of the data model and transfer it over the wire to other
